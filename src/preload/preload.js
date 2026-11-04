@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   logout: () => ipcRenderer.invoke('auth:logout'),
   hideWindow: () => ipcRenderer.invoke('window:hide'),
   quitApp: () => ipcRenderer.invoke('window:quit'),
+  getWindowMode: () => ipcRenderer.invoke('window:get-mode'),
+  setWindowMode: (mode) => ipcRenderer.invoke('window:set-mode', mode),
 
   launchSpotify: () => ipcRenderer.invoke('spotify:launch'),
   getIdleSession: () => ipcRenderer.invoke('spotify:idle'),

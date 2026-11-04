@@ -1,25 +1,25 @@
-// Decide qual posição/tamanho usar ao abrir a janela.
+// Posição e tamanho da janela nos dois modos: cápsula (compacta) e painel expandido.
+// Os dois ficam ancorados no topo, centralizados na área de trabalho do monitor.
 
-function isOverlapping(bounds, area) {
-  return (
-    bounds.x < area.x + area.width &&
-    bounds.x + bounds.width > area.x &&
-    bounds.y < area.y + area.height &&
-    bounds.y + bounds.height > area.y
-  );
+function centeredAtTop(workArea, size, topMargin) {
+  return {
+    x: Math.round(workArea.x + (workArea.width - size.width) / 2),
+    y: workArea.y + topMargin,
+    width: size.width,
+    height: size.height,
+  };
 }
 
-/**
- * Reaproveita o que foi salvo. Se a posição não aparece em nenhum monitor
- * (ex.: monitor desconectado), mantém só o tamanho e deixa o sistema centralizar.
- */
-export function restoreBounds(saved, workAreas, defaults) {
-  if (!saved) return defaults;
+export function capsuleBounds(workArea, size, topMargin) {
+  return centeredAtTop(workArea, size, topMargin);
+}
 
-  const { width, height } = saved;
-  const isVisible =
-    Number.isFinite(saved.x) &&
-    Number.isFinite(saved.y) &&
-    workAreas.some((area) => isOverlapping(saved, area));
-  return isVisible ? saved : { width, height };
+/** Painel expandido: tamanho preferido, limitado entre o mínimo e o tamanho da tela. */
+export function expandedBounds(workArea, preferredSize, minSize, topMargin) {
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const size = {
+    width: clamp(preferredSize.width, minSize.width, workArea.width),
+    height: clamp(preferredSize.height, minSize.height, workArea.height - topMargin),
+  };
+  return centeredAtTop(workArea, size, topMargin);
 }

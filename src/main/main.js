@@ -1,17 +1,14 @@
 // Ponto de entrada do Electron: só cria a janela, a bandeja e conecta os módulos.
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from 'electron';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTokenManager } from './auth.js';
 import { createDebugLog } from './debug-log.js';
 import { registerIpc } from './ipc.js';
 import { createStore } from './store.js';
-import { restoreBounds } from './window-bounds.js';
+import { createWindowMode, initialCapsuleBounds } from './window-mode.js';
 
 const APP_ROOT = join(import.meta.dirname, '..', '..');
-const DEFAULT_SIZE = { width: 340, height: 420 };
-const MIN_SIZE = { width: 260, height: 320 };
-const SAVE_BOUNDS_DELAY_MS = 400;
 
 let mainWindow = null;
 let tray = null;
@@ -26,18 +23,13 @@ function readClientId() {
   }
 }
 
-function createWindow(store) {
-  const workAreas = screen.getAllDisplays().map((display) => display.workArea);
-  const bounds = restoreBounds(store.get('bounds'), workAreas, DEFAULT_SIZE);
-
+function createWindow() {
   const window = new BrowserWindow({
-    ...bounds,
-    minWidth: MIN_SIZE.width,
-    minHeight: MIN_SIZE.height,
+    ...initialCapsuleBounds(),
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    resizable: true,
+    resizable: false, // só o painel expandido pode ser redimensionado
     skipTaskbar: true,
     show: false,
     webPreferences: {
@@ -50,21 +42,7 @@ function createWindow(store) {
 
   window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'));
   window.once('ready-to-show', () => window.show());
-  rememberBounds(window, store);
   return window;
-}
-
-function rememberBounds(window, store) {
-  let timer = null;
-  const save = () => {
-    clearTimeout(timer);
-    timer = setTimeout(
-      () => store.set('bounds', window.getBounds()),
-      SAVE_BOUNDS_DELAY_MS
-    );
-  };
-  window.on('resize', save);
-  window.on('move', save);
 }
 
 function toggleWindow() {
@@ -99,7 +77,10 @@ function start() {
   registerIpc({ tokens, clientId, debugLog });
   ipcMain.handle('window:hide', () => mainWindow.hide());
   ipcMain.handle('window:quit', () => app.quit());
-  mainWindow = createWindow(store);
+  mainWindow = createWindow();
+  const windowMode = createWindowMode({ window: mainWindow, store });
+  ipcMain.handle('window:get-mode', () => windowMode.getMode());
+  ipcMain.handle('window:set-mode', (_event, mode) => windowMode.setMode(mode));
   tray = createTray();
 }
 
