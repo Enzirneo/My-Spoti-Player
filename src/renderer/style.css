@@ -59,7 +59,7 @@
   --tag-play-size: 34px;
   --tag-icon-size: 26px; /* ícones da tag (sem fundo, só o desenho arredondado) */
   --tag-wave-height: 22px; /* faixa da onda na borda de baixo da tag */
-  --tag-wave-width: 82%; /* parte da largura que a onda ocupa (no meio) */
+  --tag-wave-width: 100%; /* largura da faixa da onda (a pílula arredondada corta as pontas) */
   --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
 
   /* ---- Onda de progresso ----
@@ -75,9 +75,10 @@
   --wave-tile-a: 38px;
   --wave-tile-b: 26px;
   --wave-tile-c: 54px;
-  /* Morros da tag: largura de cada um, deslize para os lados e transparência. */
-  --pulse-width: 62%;
-  --pulse-drift-distance: 16%;
+  /* Morros da tag: largura de cada um e por onde entram (esquerda) e saem (direita). */
+  --pulse-width: 50%;
+  --pulse-start: -75%;
+  --pulse-end: 75%;
   --pulse-opacity: 0.8;
   --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
   --wave-speed-a: 3.2s; /* uma volta da camada (menor = mais rápida) */
@@ -89,7 +90,7 @@
   --space-sm: 8px;
   --space-md: 12px;
   --space-lg: 16px;
-  --window-opacity: 80%; /* fundo da janela normal: menor = mais transparente */
+  --window-opacity: 92%; /* fundo da janela normal: menor = mais transparente */
   --tag-opacity: 94%; /* fundo da tag */
   --window-margin-tag: 8px; /* sobra da janela da tag (espaço da sombra) */
 
@@ -884,10 +885,11 @@ button {
   transform: scale(0.92);
 }
 
-/* Onda decorativa embaixo da pílula (igual à do player do celular): cinco morros grandes e
-   translúcidos, cada um de uma cor, parados quase no mesmo lugar. Cada morro "respira" (cresce
-   do chão e volta a baixar) e desliza devagar para os lados, cada um no seu ritmo; onde se
-   sobrepõem as cores se misturam e dão a sensação de onda. */
+/* Onda decorativa embaixo da pílula (como a do player do celular): cinco morros grandes e
+   translúcidos, cada um de uma cor da capa. Cada morro NASCE pequeno na esquerda, anda para a
+   direita crescendo até o meio, e volta a diminuir até sumir na direita. Como saem um atrás do
+   outro (atrasos diferentes) e em velocidades um pouco diferentes, eles se cruzam e as cores se
+   misturam, parecendo uma onda só. */
 .tag__wave {
   position: absolute;
   bottom: 0;
@@ -900,26 +902,19 @@ button {
 }
 
 .pulse {
-  --color: var(--theme-accent);
-  --position: 50%; /* onde fica o centro do morro */
+  --color: var(--theme-wave-1);
   --peak: 1; /* altura máxima, de 0 a 1 */
-  --breathe: 1.9s; /* tempo para crescer (e o mesmo para baixar) */
-  --drift: 6s; /* tempo para deslizar de um lado ao outro */
+  --duration: 5s; /* tempo para atravessar da esquerda para a direita */
   --delay: 0s;
-  --drift-direction: alternate; /* alternate-reverse faz o morro ir para o outro lado */
   position: absolute;
   inset: 0;
   background: var(--color);
-  opacity: var(--pulse-opacity);
-  -webkit-mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--pulse-width)
-    100%;
-  mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--pulse-width) 100%;
+  -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
+  mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
   transform-origin: 50% 100%;
-  scale: 1 0.08;
-  animation:
-    pulse-breathe var(--breathe) ease-in-out var(--delay) infinite alternate paused,
-    pulse-drift var(--drift) ease-in-out var(--delay) infinite var(--drift-direction)
-      paused;
+  opacity: 0;
+  transform: translateX(var(--pulse-start)) scaleY(0.05);
+  animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
 }
 
 .player.is-playing .pulse {
@@ -928,62 +923,56 @@ button {
 
 .pulse:nth-child(1) {
   --color: var(--theme-wave-1);
-  --position: 50%;
-  --breathe: 1.9s;
-  --drift: 4.9s;
+  --duration: 5s;
 }
 
 .pulse:nth-child(2) {
   --color: color-mix(in srgb, var(--theme-wave-2) 55%, white);
-  --position: 38%;
   --peak: 0.7;
-  --breathe: 1.4s;
-  --drift: 3.6s;
-  --drift-direction: alternate-reverse;
-  --delay: -0.7s;
+  --duration: 4.4s;
+  --delay: -1s;
 }
 
 .pulse:nth-child(3) {
   --color: var(--theme-wave-3);
-  --position: 64%;
   --peak: 0.85;
-  --breathe: 2.3s;
-  --drift: 4.4s;
-  --delay: -1.2s;
+  --duration: 5.6s;
+  --delay: -2.2s;
 }
 
 .pulse:nth-child(4) {
   --color: color-mix(in srgb, var(--theme-wave-1) 60%, white);
-  --position: 52%;
   --peak: 0.55;
-  --breathe: 1.2s;
-  --drift: 3.1s;
-  --drift-direction: alternate-reverse;
-  --delay: -0.4s;
+  --duration: 4.8s;
+  --delay: -3s;
 }
 
 .pulse:nth-child(5) {
   --color: var(--theme-wave-2);
-  --position: 58%;
   --peak: 0.95;
-  --breathe: 2.6s;
-  --drift: 5.7s;
-  --drift-direction: alternate-reverse;
-  --delay: -2s;
+  --duration: 5.3s;
+  --delay: -4s;
 }
 
-@keyframes pulse-breathe {
-  to {
-    scale: 1 var(--peak);
+/* Posição e altura andam juntas: pequeno nas pontas, grande no meio (sem recorte nenhum). */
+@keyframes pulse-cross {
+  0% {
+    opacity: 0;
+    transform: translateX(var(--pulse-start)) scaleY(0.05);
   }
-}
-
-@keyframes pulse-drift {
-  from {
-    translate: calc(-1 * var(--pulse-drift-distance)) 0;
+  15% {
+    opacity: var(--pulse-opacity);
   }
-  to {
-    translate: var(--pulse-drift-distance) 0;
+  50% {
+    opacity: var(--pulse-opacity);
+    transform: translateX(0) scaleY(var(--peak));
+  }
+  85% {
+    opacity: var(--pulse-opacity);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(var(--pulse-end)) scaleY(0.05);
   }
 }
 
