@@ -7,11 +7,11 @@ import { createDebugLog } from './debug-log.js';
 import { registerIpc } from './ipc.js';
 import { createStore } from './store.js';
 import { registerWindowDrag } from './window-drag.js';
-import { createWindowMode, initialNormalBounds, NORMAL_MIN } from './window-mode.js';
+import { createWindowMode, NORMAL_MIN } from './window-mode.js';
 
 const APP_ROOT = join(import.meta.dirname, '..', '..');
 
-let mainWindow = null;
+let windowMode = null;
 let tray = null;
 
 function readClientId() {
@@ -24,15 +24,19 @@ function readClientId() {
   }
 }
 
-function createWindow(store) {
+// O modo normal usa o fundo acrílico do Windows 11 (borra o que está atrás); a tag é
+// transparente para poder ser uma pílula. Por isso são janelas diferentes (ver window-mode.js).
+function createWindow(mode, bounds) {
+  const isTag = mode === 'tag';
   const window = new BrowserWindow({
-    ...initialNormalBounds(store),
-    minWidth: NORMAL_MIN.width,
-    minHeight: NORMAL_MIN.height,
+    ...bounds,
+    ...(isTag ? {} : { minWidth: NORMAL_MIN.width, minHeight: NORMAL_MIN.height }),
     frame: false,
-    transparent: true,
+    transparent: isTag,
+    backgroundColor: isTag ? undefined : '#00000000',
+    backgroundMaterial: isTag ? 'none' : 'acrylic',
     alwaysOnTop: true,
-    resizable: true,
+    resizable: !isTag,
     skipTaskbar: true,
     show: false,
     webPreferences: {
@@ -43,14 +47,15 @@ function createWindow(store) {
     },
   });
 
-  window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'));
+  window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'), { query: { mode } });
   window.once('ready-to-show', () => window.show());
   return window;
 }
 
 function toggleWindow() {
-  if (mainWindow.isVisible()) mainWindow.hide();
-  else mainWindow.show();
+  const window = windowMode.getWindow();
+  if (window.isVisible()) window.hide();
+  else window.show();
 }
 
 function createTray() {
@@ -78,11 +83,10 @@ function start() {
     filePath: join(app.getPath('userData'), 'debug.log'),
   });
   registerIpc({ tokens, clientId, debugLog });
-  ipcMain.handle('window:hide', () => mainWindow.hide());
+  ipcMain.handle('window:hide', () => windowMode.getWindow().hide());
   ipcMain.handle('window:quit', () => app.quit());
-  mainWindow = createWindow(store);
-  registerWindowDrag(mainWindow);
-  const windowMode = createWindowMode({ window: mainWindow, store });
+  registerWindowDrag(() => windowMode.getWindow());
+  windowMode = createWindowMode({ store, createWindow });
   ipcMain.handle('window:get-mode', () => windowMode.getMode());
   ipcMain.handle('window:set-mode', (_event, mode) => windowMode.setMode(mode));
   tray = createTray();
@@ -91,7 +95,7 @@ function start() {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => mainWindow?.show());
+  app.on('second-instance', () => windowMode?.getWindow().show());
   app.on('before-quit', () => tray?.destroy());
   // Ocultar na bandeja usa hide() (a janela continua existindo); fechar encerra o app.
   app.on('window-all-closed', () => app.quit());

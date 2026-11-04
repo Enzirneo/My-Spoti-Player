@@ -3,17 +3,17 @@
 import { ipcMain } from 'electron';
 import { movedBounds } from './window-bounds.js';
 
-export function registerWindowDrag(window) {
+export function registerWindowDrag(getWindow) {
   let drag = null;
 
   ipcMain.on('window:drag-start', (_event, mouse) => {
-    drag = { startBounds: window.getBounds(), startMouse: mouse };
+    drag = { startBounds: getWindow().getBounds(), startMouse: mouse };
   });
 
   ipcMain.on('window:drag-move', (_event, mouse) => {
     if (!drag) return;
     // setBounds com o tamanho original evita que a janela "cresça" em telas com escala fracionada.
-    window.setBounds(movedBounds(drag.startBounds, drag.startMouse, mouse));
+    getWindow().setBounds(movedBounds(drag.startBounds, drag.startMouse, mouse));
   });
 
   ipcMain.on('window:drag-end', () => {
