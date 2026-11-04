@@ -51,20 +51,20 @@
   --btn-round-size: 48px; /* anterior/próxima */
   --btn-play-size: 60px; /* play/pause */
   --btn-chip-size: 30px; /* botões pequenos sobre a capa */
-  --tag-cover-size: 44px;
-  --tag-play-size: 34px;
-  --tag-wave-height: 18px; /* faixa da onda na borda de baixo da tag */
+  --tag-cover-size: 38px;
+  --tag-play-size: 28px;
+  --tag-wave-height: 14px; /* faixa da onda na borda de baixo da tag */
 
   /* ---- Onda de progresso ----
      Várias camadas preenchidas (como montanhas) sobem de uma linha reta e correm em
      velocidades diferentes; onde se sobrepõem a cor fica mais forte. Cada camada usa um
      formato (SVG embutido, só o desenho importa) que se repete a cada --wave-tile-*. */
   --wave-amp: 26px; /* altura máxima das ondas na barra da janela */
-  --wave-amp-tag: 12px; /* altura máxima das ondas na tag */
+  --wave-amp-tag: 7px; /* altura máxima das ondas na tag */
   --wave-thickness: 4px; /* grossura da linha */
-  --wave-shape-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20' viewBox='0 0 64 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V14C10 0 22 0 32 10S54 18 64 14V20Z'/%3E%3C/svg%3E");
-  --wave-shape-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='20' viewBox='0 0 44 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C7 2 15 2 22 11S37 17 44 12V20Z'/%3E%3C/svg%3E");
-  --wave-shape-c: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C14 1 30 1 44 10S76 18 96 12V20Z'/%3E%3C/svg%3E");
+  --wave-shape-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20' viewBox='0 0 64 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C10 0 22 0 32 10S54 20 64 12V20Z'/%3E%3C/svg%3E");
+  --wave-shape-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='20' viewBox='0 0 44 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C7 0 15 0 22 10S37 20 44 12V20Z'/%3E%3C/svg%3E");
+  --wave-shape-c: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C14 0 30 0 44 10S76 20 96 12V20Z'/%3E%3C/svg%3E");
   --wave-tile-a: 38px;
   --wave-tile-b: 26px;
   --wave-tile-c: 54px;
@@ -523,16 +523,16 @@ button {
   --tile: var(--wave-tile-b);
   --shape: var(--wave-shape-b);
   --speed: var(--wave-speed-b);
-  --scale: 0.7;
+  --scale: 1;
   --direction: reverse;
-  opacity: 0.7;
+  opacity: 0.65;
 }
 
 .wave__layer:nth-child(3) {
   --tile: var(--wave-tile-c);
   --shape: var(--wave-shape-c);
   --speed: var(--wave-speed-c);
-  --scale: 0.85;
+  --scale: 1;
   opacity: 0.5;
 }
 
@@ -800,8 +800,8 @@ button {
 .tag__btn {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-pill);
   transition: transform var(--duration-fast) var(--ease-standard);
 }
@@ -842,7 +842,7 @@ button {
 /* Onda na borda de baixo da pílula: as mesmas camadas, em tamanho menor. */
 .tag__wave {
   --wave-height: var(--wave-amp-tag);
-  --wave-line-bottom: 5px;
+  --wave-line-bottom: 3px;
   --wave-track: rgba(255, 255, 255, 0.18);
   position: absolute;
   left: 0;
