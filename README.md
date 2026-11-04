@@ -32,6 +32,9 @@ npm install
 npm start
 ```
 
+Depois de instalado, não precisa do terminal: dê dois cliques em `iniciar.vbs` (ou crie
+um atalho para ele na área de trabalho / menu Iniciar).
+
 Na primeira vez, clique em **Entrar com Spotify**: o navegador abre, você autoriza e o
 app guarda o refresh token localmente (pasta de dados do usuário do Electron). Nas
 próximas execuções o login é automático.
@@ -42,8 +45,8 @@ ativo.
 ## Uso
 
 - Arraste a janela em qualquer área livre; redimensione pelas bordas.
-- O **×** oculta o app na bandeja. Clique no ícone da bandeja para mostrar/ocultar, ou
-  use o menu dele para **Sair**.
+- O **×** fecha o app. O **–** oculta na bandeja; clique no ícone da bandeja para
+  mostrar/ocultar, ou use o menu dele para **Sair**.
 - A posição e o tamanho da janela são lembrados.
 - Clique na barra de progresso para pular para aquele ponto.
 
