@@ -10,6 +10,10 @@ import {
   generateState,
 } from './auth.js';
 import { waitForAuthCode } from './callback-server.js';
+import { wakeSpotify } from './wake.js';
+
+// Protocolo registrado pelo app do Spotify no Windows.
+const SPOTIFY_APP_URI = 'spotify:';
 
 // Nome do comando (usado pelo renderer) -> função da Web API.
 const COMMANDS = {
@@ -51,6 +55,13 @@ export function registerIpc({ tokens, clientId }) {
     }
   }
 
+  /** Como callWithToken, mas lança em caso de erro (para uso em fluxos com várias chamadas). */
+  async function callOrThrow(command, payload) {
+    const result = await callWithToken(command, payload);
+    if (result.ok) return result.data;
+    throw Object.assign(new Error(result.error.message), result.error);
+  }
+
   async function login() {
     const { verifier, challenge } = generatePkcePair();
     const state = generateState();
@@ -77,6 +88,19 @@ export function registerIpc({ tokens, clientId }) {
   });
 
   ipcMain.handle('auth:logout', () => tokens.clearTokens());
+
+  ipcMain.handle('spotify:wake', async () => {
+    try {
+      await wakeSpotify({
+        getDevices: () => callOrThrow(spotify.getDevices),
+        transfer: (deviceId) => callOrThrow(spotify.transferPlayback, { deviceId }),
+        launch: () => shell.openExternal(SPOTIFY_APP_URI),
+      });
+      return { ok: true };
+    } catch (error) {
+      return toErrorResult(error);
+    }
+  });
 
   ipcMain.handle('spotify:call', (_event, name, payload = {}) => {
     const command = COMMANDS[name];

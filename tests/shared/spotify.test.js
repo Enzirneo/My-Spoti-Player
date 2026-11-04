@@ -9,6 +9,8 @@ import {
   play,
   isTrackLiked,
   setTrackLiked,
+  getDevices,
+  transferPlayback,
 } from '../../src/shared/spotify.js';
 
 const BASE = 'https://api.spotify.com/v1';
@@ -147,5 +149,25 @@ describe('tratamento de erros', () => {
     const error = await failureOf(vi.fn().mockResolvedValue(response(500)));
     expect(error.kind).toBe('http');
     expect(error.status).toBe(500);
+  });
+});
+
+describe('dispositivos', () => {
+  it('getDevices devolve a lista de dispositivos', async () => {
+    const devices = [{ id: 'd1', type: 'Computer' }];
+    const fetchMock = vi.fn().mockResolvedValue(response(200, { body: { devices } }));
+    expect(await getDevices({ token: 't', fetch: fetchMock })).toEqual(devices);
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/me/player/devices`);
+  });
+
+  it('transferPlayback envia o dispositivo e play=false por padrão', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response(204));
+    await transferPlayback({ token: 't', fetch: fetchMock, deviceId: 'd1' });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/me/player`);
+    expect(init.method).toBe('PUT');
+    expect(init.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(init.body)).toEqual({ device_ids: ['d1'], play: false });
   });
 });
