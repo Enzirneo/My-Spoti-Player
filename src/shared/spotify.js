@@ -44,12 +44,16 @@ async function toSpotifyError(response) {
   return new SpotifyError('http', { status, message: `HTTP ${status}` });
 }
 
-async function request({ token, fetch = globalThis.fetch, method = 'GET', path }) {
+async function request({ token, fetch = globalThis.fetch, method = 'GET', path, body }) {
+  const headers = { Authorization: `Bearer ${token}` };
+  if (body) headers['Content-Type'] = 'application/json';
+
   let response;
   try {
     response = await fetch(`${SPOTIFY_API_BASE}${path}`, {
       method,
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
+      body: body && JSON.stringify(body),
     });
   } catch (cause) {
     throw new SpotifyError('network', { message: cause.message });
@@ -109,4 +113,18 @@ export const setTrackLiked = ({ trackId, isLiked, ...options }) =>
     ...options,
     method: isLiked ? 'PUT' : 'DELETE',
     path: `/me/tracks?ids=${trackId}`,
+  });
+
+export async function getDevices(options) {
+  const response = await request({ ...options, path: '/me/player/devices' });
+  return (await response.json()).devices ?? [];
+}
+
+/** Move a reprodução para um dispositivo. Com shouldPlay=false não inicia o áudio. */
+export const transferPlayback = ({ deviceId, shouldPlay = false, ...options }) =>
+  request({
+    ...options,
+    method: 'PUT',
+    path: '/me/player',
+    body: { device_ids: [deviceId], play: shouldPlay },
   });

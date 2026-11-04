@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('api', {
   hideWindow: () => ipcRenderer.invoke('window:hide'),
   quitApp: () => ipcRenderer.invoke('window:quit'),
 
+  wakeSpotify: () => ipcRenderer.invoke('spotify:wake'),
+
   getPlayback: () => call('getPlayback'),
   play: () => call('play'),
   pause: () => call('pause'),
