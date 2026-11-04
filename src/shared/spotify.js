@@ -99,25 +99,38 @@ export const setShuffle = ({ isShuffled, ...options }) =>
 export const setRepeat = ({ mode, ...options }) =>
   request({ ...options, method: 'PUT', path: `/me/player/repeat?state=${mode}` });
 
-export async function isTrackLiked({ trackId, ...options }) {
+// Biblioteca do usuário (substitui os endpoints antigos /me/tracks, hoje obsoletos).
+const libraryQuery = (trackUri) => `uris=${encodeURIComponent(trackUri)}`;
+
+export async function isTrackLiked({ trackUri, ...options }) {
   const response = await request({
     ...options,
-    path: `/me/tracks/contains?ids=${trackId}`,
+    path: `/me/library/contains?${libraryQuery(trackUri)}`,
   });
   const [isLiked] = await response.json();
   return Boolean(isLiked);
 }
 
-export const setTrackLiked = ({ trackId, isLiked, ...options }) =>
+export const setTrackLiked = ({ trackUri, isLiked, ...options }) =>
   request({
     ...options,
     method: isLiked ? 'PUT' : 'DELETE',
-    path: `/me/tracks?ids=${trackId}`,
+    path: `/me/library?${libraryQuery(trackUri)}`,
   });
 
 export async function getDevices(options) {
   const response = await request({ ...options, path: '/me/player/devices' });
   return (await response.json()).devices ?? [];
+}
+
+/** Busca faixas pelo título e artista (usado para completar a música lida do Windows). */
+export async function searchTracks({ title, artist, ...options }) {
+  const query = encodeURIComponent(`track:${title} artist:${artist}`);
+  const response = await request({
+    ...options,
+    path: `/search?type=track&limit=5&q=${query}`,
+  });
+  return (await response.json()).tracks?.items ?? [];
 }
 
 /**

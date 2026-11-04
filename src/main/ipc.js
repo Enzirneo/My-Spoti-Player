@@ -10,8 +10,9 @@ import {
   generateState,
 } from './auth.js';
 import { waitForAuthCode } from './callback-server.js';
-import { describeDevices, describePlayback } from './debug-describe.js';
-import { findIdleDevice } from './idle.js';
+import { describeDevices, describeIdle, describePlayback } from './debug-describe.js';
+import { createIdleResolver } from './idle.js';
+import { readSpotifyMediaSession } from './media-session.js';
 import { launchSpotify } from './wake.js';
 
 // Protocolo registrado pelo app do Spotify no Windows.
@@ -131,9 +132,17 @@ export function registerIpc({ tokens, clientId, debugLog }) {
     }
   });
 
+  const resolveIdle = createIdleResolver({
+    getDevices: listDevices,
+    readMedia: readSpotifyMediaSession,
+    searchTracks: (query) => callOrThrow(spotify.searchTracks, query),
+  });
+
   ipcMain.handle('spotify:idle', async () => {
     try {
-      return { ok: true, data: await findIdleDevice({ getDevices: listDevices }) };
+      const idle = await resolveIdle();
+      debugLog.writeIfChanged('ocioso', describeIdle(idle));
+      return { ok: true, data: idle };
     } catch (error) {
       debugLog.write(`[idle] falhou: ${error.kind ?? ''} ${error.message}`);
       return toErrorResult(error);

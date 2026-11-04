@@ -461,6 +461,18 @@ button {
   pointer-events: none;
 }
 
+/* Spotify aberto sem sessão: só o play funciona até a música começar. */
+.player.is-idle #shuffle-btn,
+.player.is-idle #previous-btn,
+.player.is-idle #next-btn,
+.player.is-idle #repeat-btn,
+.player.is-idle .progress__bar,
+.player.is-idle .extras__volume,
+.player.is-idle .extras__volume-icon {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */
 
 .status {

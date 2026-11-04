@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   quitApp: () => ipcRenderer.invoke('window:quit'),
 
   launchSpotify: () => ipcRenderer.invoke('spotify:launch'),
-  getIdleDevice: () => ipcRenderer.invoke('spotify:idle'),
+  getIdleSession: () => ipcRenderer.invoke('spotify:idle'),
 
   getPlayback: () => call('getPlayback'),
   play: () => call('play'),
@@ -24,6 +24,6 @@ contextBridge.exposeInMainWorld('api', {
   setVolume: (percent) => call('setVolume', { percent }),
   setShuffle: (isShuffled) => call('setShuffle', { isShuffled }),
   setRepeat: (mode) => call('setRepeat', { mode }),
-  isTrackLiked: (trackId) => call('isTrackLiked', { trackId }),
-  setTrackLiked: (trackId, isLiked) => call('setTrackLiked', { trackId, isLiked }),
+  isTrackLiked: (trackUri) => call('isTrackLiked', { trackUri }),
+  setTrackLiked: (trackUri, isLiked) => call('setTrackLiked', { trackUri, isLiked }),
 });
