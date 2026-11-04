@@ -63,19 +63,13 @@
   --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
 
   /* ---- Ondas ----
-     Barra da janela: 5 morros translúcidos, cada um de uma cor da capa, que "respiram"
-     (crescem e baixam) e deslizam de leve para os lados dentro da parte já tocada.
-     Tag: os mesmos morros, mas nascendo na esquerda e cruzando até a direita (.pulse). */
-  --wave-amp: 26px; /* altura máxima dos morros na barra da janela */
-  --wave-thickness: 4px; /* grossura da linha da barra */
-  --hill-width: 62%; /* largura de cada morro (da parte tocada) */
-  --hill-drift: 12%; /* quanto cada morro desliza para os lados */
-  --hill-opacity: 0.85;
+     5 morros translúcidos, todos de tons da MESMA cor da capa. Cada morro nasce bem pequeno na
+     ponta esquerda, vai para a direita crescendo e volta a diminuir até sumir na ponta direita.
+     Na janela, a "pista" é a parte já tocada da barra; na tag, é a faixa embaixo da pílula. */
+  --wave-amp: 30px; /* altura máxima dos morros na barra da janela */
   --wave-amp-tag: 16px; /* altura máxima dos morros na tag */
-  /* Morros da tag: largura de cada um e por onde entram (esquerda) e saem (direita). */
-  --pulse-width: 50%;
-  --pulse-start: -75%;
-  --pulse-end: 75%;
+  --wave-thickness: 4px; /* grossura da linha da barra */
+  --pulse-width: 44%; /* largura de cada morro (da pista) */
   --pulse-opacity: 0.8;
   /* Formato do morro (um SVG embutido, só o desenho importa). */
   --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
@@ -515,99 +509,6 @@ button {
   background: var(--theme-accent);
 }
 
-/* Cada morro é um bloco de cor recortado no formato de sino (máscara). Ele cresce do chão e
-   baixa (breathe) enquanto desliza para um lado e para o outro (drift), cada um no seu ritmo;
-   as cores translúcidas se misturam onde se sobrepõem. Só anima tocando. */
-.hill {
-  --color: var(--theme-accent);
-  --position: 50%; /* onde fica o centro do morro */
-  --peak: 1; /* altura máxima, de 0 a 1 */
-  --breathe: 1.9s; /* tempo para crescer (e o mesmo para baixar) */
-  --drift: 5s; /* tempo para deslizar de um lado ao outro */
-  --delay: 0s;
-  --drift-direction: alternate;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--wave-thickness) - 1px);
-  height: var(--wave-height);
-  background: var(--color);
-  opacity: var(--hill-opacity);
-  -webkit-mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--hill-width) 100%;
-  mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--hill-width) 100%;
-  transform-origin: 50% 100%;
-  scale: 1 0.1;
-  animation:
-    hill-breathe var(--breathe) ease-in-out var(--delay) infinite alternate paused,
-    hill-drift var(--drift) ease-in-out var(--delay) infinite var(--drift-direction)
-      paused;
-}
-
-.player.is-playing .hill {
-  animation-play-state: running;
-}
-
-.hill:nth-child(1) {
-  --color: var(--theme-wave-1);
-  --position: 50%;
-  --breathe: 1.9s;
-  --drift: 4.9s;
-}
-
-.hill:nth-child(2) {
-  --color: color-mix(in srgb, var(--theme-wave-2) 55%, white);
-  --position: 38%;
-  --peak: 0.7;
-  --breathe: 1.4s;
-  --drift: 3.6s;
-  --drift-direction: alternate-reverse;
-  --delay: -0.7s;
-}
-
-.hill:nth-child(3) {
-  --color: var(--theme-wave-3);
-  --position: 64%;
-  --peak: 0.85;
-  --breathe: 2.3s;
-  --drift: 4.4s;
-  --delay: -1.2s;
-}
-
-.hill:nth-child(4) {
-  --color: color-mix(in srgb, var(--theme-wave-1) 60%, white);
-  --position: 52%;
-  --peak: 0.6;
-  --breathe: 1.2s;
-  --drift: 3.1s;
-  --drift-direction: alternate-reverse;
-  --delay: -0.4s;
-}
-
-.hill:nth-child(5) {
-  --color: var(--theme-wave-2);
-  --position: 58%;
-  --peak: 0.95;
-  --breathe: 2.6s;
-  --drift: 5.7s;
-  --drift-direction: alternate-reverse;
-  --delay: -2s;
-}
-
-@keyframes hill-breathe {
-  to {
-    scale: 1 var(--peak);
-  }
-}
-
-@keyframes hill-drift {
-  from {
-    translate: calc(-1 * var(--hill-drift)) 0;
-  }
-  to {
-    translate: var(--hill-drift) 0;
-  }
-}
-
 .wave__thumb {
   position: absolute;
   bottom: calc(var(--wave-line-bottom) + var(--wave-thickness) / 2);
@@ -932,6 +833,7 @@ button {
    outro (atrasos diferentes) e em velocidades um pouco diferentes, eles se cruzam e as cores se
    misturam, parecendo uma onda só. */
 .tag__wave {
+  --wave-height: var(--wave-amp-tag);
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -939,9 +841,6 @@ button {
   height: var(--tag-wave-height);
   transform: translateX(-50%);
   overflow: hidden;
-  /* Pontas suaves: o morro que entra ou sai da faixa aparece/some aos poucos, sem corte seco. */
-  -webkit-mask: linear-gradient(to right, transparent, #000 28%, #000 72%, transparent);
-  mask: linear-gradient(to right, transparent, #000 28%, #000 72%, transparent);
   pointer-events: none;
 }
 
@@ -951,18 +850,26 @@ button {
   --duration: 5s; /* tempo para atravessar da esquerda para a direita */
   --delay: 0s;
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--wave-height);
   background: var(--color);
+  opacity: var(--pulse-opacity);
   -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
   mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
   transform-origin: 50% 100%;
-  opacity: 0;
-  transform: translateX(var(--pulse-start)) scaleY(0.05);
+  transform: translateX(-50%) scaleY(0.02);
   animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
 }
 
 .player.is-playing .pulse {
   animation-play-state: running;
+}
+
+/* Na barra da janela os morros ficam sobre a linha, só na parte já tocada. */
+.wave__played .pulse {
+  bottom: calc(var(--wave-thickness) - 1px);
 }
 
 .pulse:nth-child(1) {
@@ -998,25 +905,24 @@ button {
   --delay: -4s;
 }
 
-/* Posição e altura andam juntas: pequeno nas pontas, grande no meio (sem recorte nenhum). */
+/* O centro do morro vai da ponta esquerda (-50%) à direita (+50%). Ele nasce quase sem altura
+   na esquerda, é maior no meio e volta a ficar sem altura na direita; assim, mesmo cortado pela
+   borda da pista, o corte não aparece. Sem degradê nenhum. */
 @keyframes pulse-cross {
   0% {
-    opacity: 0;
-    transform: translateX(var(--pulse-start)) scaleY(0.05);
+    transform: translateX(-50%) scaleY(0.02);
   }
-  15% {
-    opacity: var(--pulse-opacity);
+  25% {
+    transform: translateX(-25%) scaleY(calc(var(--peak) * 0.6));
   }
   50% {
-    opacity: var(--pulse-opacity);
     transform: translateX(0) scaleY(var(--peak));
   }
-  85% {
-    opacity: var(--pulse-opacity);
+  75% {
+    transform: translateX(25%) scaleY(calc(var(--peak) * 0.6));
   }
   100% {
-    opacity: 0;
-    transform: translateX(var(--pulse-end)) scaleY(0.05);
+    transform: translateX(50%) scaleY(0.02);
   }
 }
 
