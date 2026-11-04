@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   login: () => ipcRenderer.invoke('auth:login'),
   logout: () => ipcRenderer.invoke('auth:logout'),
   hideWindow: () => ipcRenderer.invoke('window:hide'),
+  quitApp: () => ipcRenderer.invoke('window:quit'),
 
   getPlayback: () => call('getPlayback'),
   play: () => call('play'),

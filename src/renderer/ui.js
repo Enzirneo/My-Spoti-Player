@@ -29,6 +29,7 @@ export const elements = {
   previousButton: $('previous-btn'),
   nextButton: $('next-btn'),
   closeButton: $('close-btn'),
+  hideButton: $('hide-btn'),
   likeButton: $('like-btn'),
   copyButton: $('copy-btn'),
   volume: $('volume'),

@@ -50,12 +50,6 @@ function createWindow(store) {
   window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'));
   window.once('ready-to-show', () => window.show());
   rememberBounds(window, store);
-  // Fechar só esconde na bandeja; "Sair" fica no menu da bandeja.
-  window.on('close', (event) => {
-    if (app.isQuitting) return;
-    event.preventDefault();
-    window.hide();
-  });
   return window;
 }
 
@@ -100,6 +94,7 @@ function start() {
 
   registerIpc({ tokens, clientId });
   ipcMain.handle('window:hide', () => mainWindow.hide());
+  ipcMain.handle('window:quit', () => app.quit());
   mainWindow = createWindow(store);
   tray = createTray();
 }
@@ -108,11 +103,8 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => mainWindow?.show());
-  app.on('before-quit', () => {
-    app.isQuitting = true;
-    tray?.destroy();
-  });
-  // Mantém o app vivo na bandeja mesmo sem janelas visíveis.
-  app.on('window-all-closed', () => {});
+  app.on('before-quit', () => tray?.destroy());
+  // Ocultar na bandeja usa hide() (a janela continua existindo); fechar encerra o app.
+  app.on('window-all-closed', () => app.quit());
   app.whenReady().then(start);
 }
