@@ -12,6 +12,7 @@ import { createWindowMode, NORMAL_MIN } from './window-mode.js';
 const APP_ROOT = join(import.meta.dirname, '..', '..');
 
 let windowMode = null;
+let debugLog = null;
 let tray = null;
 
 function readClientId() {
@@ -22,6 +23,23 @@ function readClientId() {
     // Sem config.json válido o app abre e avisa na tela que falta o clientId.
     return '';
   }
+}
+
+// Se a tela da janela morrer (processo de renderização cai) ela fica só com o fundo acrílico,
+// vazia. Registra no log e recarrega a página para o app se recuperar sozinho.
+function watchWindowHealth(window) {
+  const { webContents } = window;
+  webContents.on('render-process-gone', (_event, details) => {
+    debugLog?.write(`[janela] tela caiu (${details.reason}, código ${details.exitCode})`);
+    if (details.reason !== 'clean-exit' && !window.isDestroyed()) {
+      setTimeout(() => !window.isDestroyed() && webContents.reload(), 500);
+    }
+  });
+  webContents.on('did-fail-load', (_event, code, description) => {
+    debugLog?.write(`[janela] falha ao carregar (${code}) ${description}`);
+  });
+  window.on('unresponsive', () => debugLog?.write('[janela] sem resposta'));
+  window.on('responsive', () => debugLog?.write('[janela] voltou a responder'));
 }
 
 // O modo normal usa o fundo acrílico do Windows 11 (borra o que está atrás); a tag é
@@ -47,6 +65,7 @@ function createWindow(mode, bounds) {
     },
   });
 
+  watchWindowHealth(window);
   window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'), { query: { mode } });
   window.once('ready-to-show', () => window.show());
   return window;
@@ -79,10 +98,13 @@ function start() {
   const clientId = readClientId();
   const tokens = createTokenManager({ store, clientId });
 
-  const debugLog = createDebugLog({
+  debugLog = createDebugLog({
     filePath: join(app.getPath('userData'), 'debug.log'),
   });
   registerIpc({ tokens, clientId, debugLog });
+  app.on('child-process-gone', (_event, details) =>
+    debugLog.write(`[processo] ${details.type} caiu (${details.reason})`)
+  );
   ipcMain.handle('window:hide', () => windowMode.getWindow().hide());
   ipcMain.handle('window:quit', () => app.quit());
   registerWindowDrag(() => windowMode.getWindow());
