@@ -13,7 +13,7 @@ function lightnessOf(hsl) {
 describe('pickTheme', () => {
   it('gera fundo escuro e destaque claro para qualquer capa', () => {
     const theme = pickTheme(solidPixels([220, 60, 60]));
-    expect(lightnessOf(theme.background)).toBeLessThan(25);
+    expect(lightnessOf(theme.background)).toBeLessThan(32);
     expect(lightnessOf(theme.accent)).toBeGreaterThan(60);
   });
 
@@ -43,6 +43,29 @@ describe('pickTheme', () => {
   it('ignora pixels transparentes', () => {
     const pixels = [...solidPixels([200, 30, 30], 4), 0, 0, 255, 0, 0, 0, 255, 0];
     expect(pickTheme(pixels)).not.toBeNull();
+  });
+
+  it('devolve até 3 cores de onda, de matizes diferentes quando a capa tem várias cores', () => {
+    const redBlueGreen = [
+      ...solidPixels([220, 40, 40], 8),
+      ...solidPixels([40, 60, 220], 6),
+      ...solidPixels([40, 200, 60], 4),
+    ];
+    const { colors } = pickTheme(redBlueGreen);
+    expect(colors).toHaveLength(3);
+    const hues = colors.map((color) => Number(/^hsl\(([\d.]+),/.exec(color)[1]));
+    expect(new Set(hues).size).toBe(3);
+    expect(hues[0]).toBeLessThan(20); // o vermelho, o mais comum, vem primeiro
+  });
+
+  it('capa de uma cor só ainda gera 3 cores (variações de claridade)', () => {
+    expect(pickTheme(solidPixels([220, 40, 40])).colors).toHaveLength(3);
+  });
+
+  it('capa preto e branco gera cores de onda sem matiz', () => {
+    const { colors } = pickTheme(solidPixels([128, 128, 128]));
+    expect(colors).toHaveLength(3);
+    for (const color of colors) expect(color).toContain(', 0%,');
   });
 
   it('devolve null quando não há pixels utilizáveis', () => {

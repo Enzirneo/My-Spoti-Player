@@ -7,7 +7,11 @@ const GRAY_SATURATION = 0.08; // abaixo disso a capa é tratada como preto e bra
 // Pixels coloridos pesam mais na saturação, para uma capa cinza com detalhe azul ficar azulada.
 const BASE_WEIGHT = 0.15;
 
-const BACKGROUND = { maxSaturation: 0.45, lightness: 17 }; // fundo escuro e discreto
+const BACKGROUND = { maxSaturation: 0.6, lightness: 26 }; // fundo escuro, mas com a cor da capa
+const WAVE_COLOR_COUNT = 3;
+const HUE_BUCKETS = 12; // a capa é dividida em faixas de 30° de matiz
+const MIN_HUE_GAP = 50; // cores de onda escolhidas precisam ser bem diferentes entre si
+const WAVE_LIGHTNESS = [62, 74, 50]; // claridades usadas quando faltam matizes
 const ACCENT = { minSaturation: 0.35, maxSaturation: 0.75, lightness: 76 }; // onda e barra
 
 function rgbToHsl(red, green, blue) {
@@ -30,6 +34,34 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const hsl = (hue, saturation, lightness) =>
   `hsl(${Math.round(hue)}, ${Math.round(saturation * 100)}%, ${lightness}%)`;
 
+const hueDistance = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+
+/** Escolhe até 3 cores de matizes diferentes (as mais presentes na capa) para as ondas. */
+function pickWaveColors(buckets, fallbackHue, fallbackSaturation) {
+  const ranked = buckets
+    .filter((bucket) => bucket.weight > 0)
+    .sort((first, second) => second.weight - first.weight);
+  const chosen = [];
+  for (const bucket of ranked) {
+    const hue = bucket.sumHue / bucket.weight;
+    if (chosen.every((other) => hueDistance(other.hue, hue) >= MIN_HUE_GAP)) {
+      chosen.push({ hue, saturation: bucket.sumSaturation / bucket.weight });
+    }
+    if (chosen.length === WAVE_COLOR_COUNT) break;
+  }
+  // Faltou matiz (capa de uma cor ou cinza): completa com variações de claridade.
+  while (chosen.length < WAVE_COLOR_COUNT) {
+    chosen.push({ hue: fallbackHue, saturation: fallbackSaturation, lighter: true });
+  }
+  return chosen.map((color, index) =>
+    hsl(
+      color.hue,
+      color.saturation < GRAY_SATURATION ? 0 : clamp(color.saturation, 0.4, 0.85),
+      WAVE_LIGHTNESS[color.lighter ? index : 0] + (color.lighter ? 0 : index * 6)
+    )
+  );
+}
+
 /** Recebe pixels RGBA (como getImageData) e devolve { background, accent } ou null. */
 export function pickTheme(pixels) {
   // O matiz é uma média em círculo (seno/cosseno), senão vermelho (0/360) vira verde, e só conta
@@ -38,6 +70,11 @@ export function pickTheme(pixels) {
   let sumCos = 0;
   let sumSaturation = 0;
   let totalWeight = 0;
+  const buckets = Array.from({ length: HUE_BUCKETS }, () => ({
+    weight: 0,
+    sumHue: 0,
+    sumSaturation: 0,
+  }));
 
   for (let index = 0; index < pixels.length; index += 4) {
     if (pixels[index + 3] < MIN_ALPHA) continue;
@@ -52,6 +89,12 @@ export function pickTheme(pixels) {
     sumCos += Math.cos(radians) * saturation;
     sumSaturation += saturation * weight;
     totalWeight += weight;
+    if (saturation >= GRAY_SATURATION) {
+      const bucket = buckets[Math.floor(hue / (360 / HUE_BUCKETS)) % HUE_BUCKETS];
+      bucket.weight += saturation;
+      bucket.sumHue += hue * saturation;
+      bucket.sumSaturation += saturation * saturation;
+    }
   }
   if (totalWeight === 0) return null;
 
@@ -61,6 +104,7 @@ export function pickTheme(pixels) {
     return {
       background: hsl(0, 0, BACKGROUND.lightness),
       accent: hsl(0, 0, ACCENT.lightness),
+      colors: pickWaveColors([], 0, 0),
     };
   }
   return {
@@ -74,6 +118,7 @@ export function pickTheme(pixels) {
       clamp(saturation, ACCENT.minSaturation, ACCENT.maxSaturation),
       ACCENT.lightness
     ),
+    colors: pickWaveColors(buckets, hue, saturation),
   };
 }
 
