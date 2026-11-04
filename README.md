@@ -44,15 +44,16 @@ ativo.
 
 ## Uso
 
-- O app abre como uma **janelinha quadrada** com a capa em tela cheia e um cartão de vidro
-  com os controles. Arraste por qualquer área livre; redimensione pelas bordas. A posição
-  e o tamanho são lembrados.
-- Passe o mouse sobre a janela para ver os botões do topo (modo mini, copiar link, ocultar,
-  fechar) e o controle de volume.
-- O botão de **modo mini** transforma a janela numa **tag** pequena (capa, título, linha de
-  progresso e play/pause). Ela começa no topo e no centro da tela, mas pode ser arrastada
-  para qualquer lugar, e a posição também é lembrada. O botão com setas na tag volta para a
-  janela.
+- O app abre como uma **janelinha** com um cartão grande da capa (título e artista por cima),
+  barra de progresso em **onda**, e botões redondos de anterior, play/pause e próxima. As
+  cores do fundo e da onda **mudam sozinhas** conforme a capa da música.
+- Arraste por qualquer área livre; redimensione pelas bordas. Posição e tamanho são lembrados.
+- Passe o mouse sobre a janela para ver os botões do topo (modo mini, volume, copiar link,
+  ocultar, fechar).
+- O botão de **modo mini** transforma a janela numa **tag** em pílula (capa redonda, título,
+  anterior/play/próxima e a onda de progresso na borda). Ela começa no topo e no centro da
+  tela, mas pode ser arrastada para qualquer lugar (a posição também é lembrada). O botão com
+  setas na tag volta para a janela.
 - O **×** fecha o app e o **–** oculta na bandeja. Pelo ícone da bandeja você mostra/oculta
   ou escolhe **Sair** (útil quando só a tag está visível).
 - Clique na barra de progresso para pular para aquele ponto.
@@ -61,9 +62,13 @@ ativo.
 
 Todo o visual está em [`src/renderer/style.css`](src/renderer/style.css). O bloco `:root`
 no topo concentra cores, raios, fontes, tamanhos e durações de animação (cada grupo está
-comentado). O resto do arquivo só usa essas variáveis. O efeito de vidro (glass) usa as variáveis `--glass-*` e `--backdrop-*`. Há exemplos de
-animação no botão play/pause, na troca de capa/texto, no coração de curtir e na troca
-entre janela e tag.
+comentado). O resto do arquivo só usa essas variáveis.
+
+- **Cores:** `--theme-bg` e `--theme-accent` são trocadas pelo app a cada música (a partir da
+  capa); o que não vem da capa fica em `--color-*`.
+- **Onda de progresso:** `--wave-*` (altura, comprimento, espessura) e `--duration-wave`
+  (velocidade).
+- **Animações de exemplo:** play/pause, troca de capa/texto, coração e troca entre janela e tag.
 
 ## Estrutura
 
