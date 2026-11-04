@@ -218,7 +218,8 @@ function bindEvents() {
   window.addEventListener('pointerup', () => (isAdjustingVolume = false));
   elements.likeButton.addEventListener('click', toggleLiked);
   elements.copyButton.addEventListener('click', copyTrackLink);
-  elements.closeButton.addEventListener('click', () => api.hideWindow());
+  elements.closeButton.addEventListener('click', () => api.quitApp());
+  elements.hideButton.addEventListener('click', () => api.hideWindow());
   elements.statusAction.addEventListener('click', login);
   document.addEventListener('visibilitychange', () =>
     document.hidden ? clearTimeout(pollTimer) : poll()
