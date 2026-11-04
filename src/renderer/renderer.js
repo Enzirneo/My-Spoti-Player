@@ -9,6 +9,7 @@ import {
   normalizePlayback,
 } from '../shared/state.js';
 import { positionFromClick, startProgressLoop } from './progress.js';
+import { enableWindowDrag } from './drag.js';
 import * as ui from './ui.js';
 
 const { api } = window;
@@ -35,7 +36,6 @@ let isPollingEnabled = false;
 let isPolling = false;
 let isAdjustingVolume = false;
 let isLaunching = false;
-let windowMode = 'capsule';
 let hasTriedLaunch = false; // abre o Spotify sozinho só uma vez por execução
 let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'launch' | 'resume'
 let idleCache = null; // última leitura do dispositivo ocioso: { at, result }
@@ -309,24 +309,14 @@ async function login() {
 }
 
 async function changeWindowMode(mode) {
-  windowMode = await api.setWindowMode(mode);
-  ui.renderMode(windowMode);
-}
-
-/** Na cápsula, clicar em qualquer lugar (menos nos botões) abre o painel. */
-function expandOnCapsuleClick(event) {
-  if (windowMode !== 'capsule' || event.target.closest('button')) return;
-  changeWindowMode('expanded');
+  ui.renderMode(await api.setWindowMode(mode));
 }
 
 function bindEvents() {
   elements.playButton.addEventListener('click', togglePlay);
-  elements.capsulePlayButton.addEventListener('click', togglePlay);
-  elements.player.addEventListener('click', expandOnCapsuleClick);
-  elements.collapseButton.addEventListener('click', () => changeWindowMode('capsule'));
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && windowMode === 'expanded') changeWindowMode('capsule');
-  });
+  elements.tagPlayButton.addEventListener('click', togglePlay);
+  elements.tagModeButton.addEventListener('click', () => changeWindowMode('tag'));
+  elements.expandButton.addEventListener('click', () => changeWindowMode('normal'));
   elements.shuffleButton.addEventListener('click', toggleShuffle);
   elements.repeatButton.addEventListener('click', cycleRepeat);
   elements.previousButton.addEventListener('click', () =>
@@ -351,8 +341,8 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
-  windowMode = await api.getWindowMode();
-  ui.renderMode(windowMode);
+  enableWindowDrag(elements.player, api);
+  ui.renderMode(await api.getWindowMode());
   startProgressLoop({
     getState: () => playback,
     onFrame: (progressMs) => ui.renderProgress(progressMs, playback.track.durationMs),

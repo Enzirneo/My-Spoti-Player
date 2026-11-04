@@ -12,6 +12,9 @@ contextBridge.exposeInMainWorld('api', {
   quitApp: () => ipcRenderer.invoke('window:quit'),
   getWindowMode: () => ipcRenderer.invoke('window:get-mode'),
   setWindowMode: (mode) => ipcRenderer.invoke('window:set-mode', mode),
+  startWindowDrag: (mouse) => ipcRenderer.send('window:drag-start', mouse),
+  dragWindow: (mouse) => ipcRenderer.send('window:drag-move', mouse),
+  endWindowDrag: () => ipcRenderer.send('window:drag-end'),
 
   launchSpotify: () => ipcRenderer.invoke('spotify:launch'),
   getIdleSession: () => ipcRenderer.invoke('spotify:idle'),

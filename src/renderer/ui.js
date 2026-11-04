@@ -22,12 +22,12 @@ const $ = (id) => document.getElementById(id);
 export const elements = {
   player: $('player'),
   covers: [$('cover-a'), $('cover-b')],
-  art: $('art'),
-  capsuleCover: $('capsule-cover'),
-  capsuleTitle: $('capsule-title'),
-  capsuleArtist: $('capsule-artist'),
-  capsulePlayButton: $('capsule-play-btn'),
-  collapseButton: $('collapse-btn'),
+  tagCover: $('tag-cover'),
+  tagTitle: $('tag-title'),
+  tagArtist: $('tag-artist'),
+  tagPlayButton: $('tag-play-btn'),
+  expandButton: $('expand-btn'),
+  tagModeButton: $('tag-mode-btn'),
   info: $('info'),
   title: $('title'),
   artist: $('artist'),
@@ -55,7 +55,7 @@ export const elements = {
 let visibleCoverIndex = -1;
 let toastTimer = null;
 
-/** Mostra a capa nova: fundo desfocado com crossfade, capa grande e miniatura da cápsula. */
+/** Mostra a capa nova: crossfade na capa de fundo e miniatura da tag. */
 function showCover(url) {
   const nextIndex = (visibleCoverIndex + 1) % elements.covers.length;
   const nextCover = elements.covers[nextIndex];
@@ -65,18 +65,14 @@ function showCover(url) {
     elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
     nextCover.classList.add('is-visible');
     visibleCoverIndex = nextIndex;
-
-    elements.art.src = url;
-    elements.capsuleCover.src = url;
-    replayAnimation(elements.art);
+    elements.tagCover.src = url;
   };
   preloader.src = url;
 }
 
 function clearCover() {
   elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
-  elements.art.removeAttribute('src');
-  elements.capsuleCover.removeAttribute('src');
+  elements.tagCover.removeAttribute('src');
 }
 
 function replayAnimation(element) {
@@ -89,8 +85,8 @@ export function renderTrack(track) {
   elements.title.textContent = track.name;
   elements.artist.textContent = track.artists;
   elements.album.textContent = track.album;
-  elements.capsuleTitle.textContent = track.name;
-  elements.capsuleArtist.textContent = track.artists;
+  elements.tagTitle.textContent = track.name;
+  elements.tagArtist.textContent = track.artists;
   elements.timeTotal.textContent = msToClock(track.durationMs);
   if (track.coverUrl) showCover(track.coverUrl);
   else clearCover();
@@ -99,7 +95,7 @@ export function renderTrack(track) {
 
 export function renderControls(state) {
   elements.player.classList.toggle('is-idle', Boolean(state.isIdle));
-  for (const button of [elements.playButton, elements.capsulePlayButton]) {
+  for (const button of [elements.playButton, elements.tagPlayButton]) {
     button.classList.toggle('is-playing', state.isPlaying);
   }
   elements.shuffleButton.classList.toggle('is-active', state.isShuffled);
@@ -114,7 +110,7 @@ export function renderVolume(volume) {
 
 export function renderProgress(progressMs, durationMs) {
   elements.timeCurrent.textContent = msToClock(progressMs);
-  // A variável fica na raiz: a barra do painel e a linha da cápsula leem a mesma.
+  // A variável fica na raiz: a barra da janela e a linha da tag leem a mesma.
   elements.player.style.setProperty('--progress', progressRatio(progressMs, durationMs));
 }
 
@@ -150,7 +146,7 @@ export function showToast(text) {
   );
 }
 
-/** Troca entre "capsule" (compacto) e "expanded" (painel); o CSS faz o resto. */
+/** Troca entre "normal" (janela) e "tag" (barra mini); o CSS faz o resto. */
 export function renderMode(mode) {
   elements.player.dataset.mode = mode;
 }
