@@ -315,6 +315,12 @@ async function changeWindowMode(mode) {
 function bindEvents() {
   elements.playButton.addEventListener('click', togglePlay);
   elements.tagPlayButton.addEventListener('click', togglePlay);
+  elements.tagPreviousButton.addEventListener('click', () =>
+    runCommand({ send: () => api.previous() })
+  );
+  elements.tagNextButton.addEventListener('click', () =>
+    runCommand({ send: () => api.next() })
+  );
   elements.tagModeButton.addEventListener('click', () => changeWindowMode('tag'));
   elements.expandButton.addEventListener('click', () => changeWindowMode('normal'));
   elements.shuffleButton.addEventListener('click', toggleShuffle);

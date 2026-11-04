@@ -1,67 +1,68 @@
 /* ==========================================================================
    TODO O VISUAL DO APP FICA AQUI.
+   Estilo inspirado no player de mídia do One UI: cores sólidas e suaves tiradas da capa,
+   cantos bem arredondados, botões redondos grandes e barra de progresso em onda.
+
    Para trocar o tema, mexa só nas variáveis do bloco :root logo abaixo:
-     - Cores .............. --color-*
-     - Vidro (glass) ...... --glass-*   (fosco, brilho, borda, sombra)
-     - Fundo da tag ....... --backdrop-*
+     - Cores .............. --theme-*, --color-*   (--theme-* muda sozinho com a capa)
      - Cantos/raios ....... --radius-*
-     - Fonte e tamanhos ... --font-*, --icon-*, --tag-*
+     - Fonte e tamanhos ... --font-*, --icon-*, --btn-*, --wave-*
      - Espaçamentos ....... --space-*
      - Animações .......... --duration-*, --ease-*
    O resto do arquivo só consome essas variáveis.
 
    O app tem dois modos, escolhidos pelo atributo data-mode do .player:
-     - "normal" : janelinha quadrada (capa em tela cheia + cartão de vidro)
-     - "tag"    : barra mini (capa, título, linha de progresso e play/pause)
+     - "normal" : janelinha com o cartão da capa e os controles
+     - "tag"    : pílula mini (capa redonda, título, anterior/play/próxima e onda)
    ========================================================================== */
 
 :root {
-  /* ---- Cores ---- */
+  /* ---- Cores do tema: o JS troca as duas primeiras conforme a capa ---- */
+  --theme-bg: hsl(0, 0%, 17%); /* fundo (escuro, tingido pela capa) */
+  --theme-accent: hsl(0, 0%, 76%); /* onda de progresso e destaques */
+
+  /* Derivadas do fundo: botões e trilhas ficam sempre na mesma família de cor. */
+  --surface: color-mix(in srgb, var(--theme-bg) 80%, var(--theme-accent));
+  --surface-hover: color-mix(in srgb, var(--theme-bg) 66%, var(--theme-accent));
+  --track: color-mix(in srgb, var(--theme-bg) 62%, var(--theme-accent));
+  --ring: color-mix(in srgb, var(--theme-bg) 75%, black);
+
   --color-text: #ffffff;
-  --color-text-muted: rgba(255, 255, 255, 0.72);
-  --color-accent: #30d158; /* verde: ativo, curtido, barra ao passar o mouse */
-  --color-fallback-bg: #1c1c22; /* fundo quando não há capa */
-  --color-banner-bg: rgba(220, 70, 70, 0.85);
-  --color-on-light: #1c1c22; /* ícone sobre botão branco */
-
-  /* ---- Vidro (efeito "glass" estilo iOS) ---- */
-  --glass-top: rgba(255, 255, 255, 0.2); /* cor do vidro em cima... */
-  --glass-bottom: rgba(24, 24, 32, 0.38); /* ...e embaixo (escurece p/ dar leitura) */
-  --glass-control: rgba(20, 20, 26, 0.38); /* botões soltos sobre a capa */
-  --glass-control-hover: rgba(255, 255, 255, 0.28);
-  --glass-border: rgba(255, 255, 255, 0.24);
-  --glass-highlight: rgba(255, 255, 255, 0.5); /* brilho na borda de cima */
-  --glass-blur: 28px; /* desfoque do que está atrás do vidro */
-  --glass-saturate: 170%; /* deixa as cores atrás mais vivas */
-  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-
-  /* ---- Fundo da tag (capa desfocada) ---- */
-  --backdrop-blur: 30px;
-  --backdrop-saturate: 1.6;
-  --backdrop-brightness: 0.6;
+  --color-text-muted: rgba(255, 255, 255, 0.7);
+  --color-chip: rgba(0, 0, 0, 0.34); /* botões soltos sobre a capa */
+  --color-chip-hover: rgba(0, 0, 0, 0.5);
+  --color-like: #ff5c7a; /* coração curtido */
+  --color-active: #ffffff; /* aleatório/repetir ligados */
+  --color-banner-bg: rgba(220, 70, 70, 0.9);
+  --color-on-light: #1c1c22;
 
   /* ---- Raios ---- */
-  --radius-window: 22px; /* janela normal */
-  --radius-card: 18px; /* cartão de vidro */
-  --radius-tag: 999px; /* tag (totalmente arredondada) */
-  --radius-thumb: 10px; /* capa pequena da tag */
+  --radius-window: 30px; /* janela normal */
+  --radius-cover: 26px; /* cartão da capa */
+  --radius-tag: 999px; /* tag (pílula) */
   --radius-pill: 999px;
 
   /* ---- Fonte e tamanhos ---- */
   --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
-  --font-size-title: 16px;
-  --font-size-artist: 12.5px;
-  --font-size-small: 11px;
+  --font-size-title: 21px;
+  --font-size-artist: 13px;
+  --font-size-small: 12px;
   --icon-size: 18px;
   --icon-size-sm: 14px;
   --icon-size-lg: 22px;
-  --icon-size-xl: 26px;
-  --play-btn-size: 46px;
-  --control-btn-size: 34px;
-  --top-btn-size: 28px;
-  --progress-height: 4px;
-  --tag-cover-size: 32px;
-  --tag-play-size: 30px;
+  --icon-size-xl: 28px;
+  --btn-round-size: 48px; /* anterior/próxima */
+  --btn-play-size: 60px; /* play/pause */
+  --btn-chip-size: 30px; /* botões pequenos sobre a capa */
+  --tag-cover-size: 44px;
+  --tag-play-size: 34px;
+
+  /* ---- Onda de progresso ---- */
+  --wave-height: 10px;
+  --wave-length: 24px; /* comprimento de cada ondinha */
+  --wave-thickness: 3px;
+  /* Máscara da onda (um SVG embutido). Para mudar o formato, edite o path. */
+  --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0 5Q6 0 12 5T24 5' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
 
   /* ---- Espaçamentos ---- */
   --space-xs: 4px;
@@ -73,8 +74,9 @@
   --duration-fast: 150ms; /* hover e clique */
   --duration-reveal: 220ms; /* botões que aparecem ao passar o mouse */
   --duration-play-toggle: 280ms; /* troca play/pause */
-  --duration-track-change: 700ms; /* troca de música (capa e texto) */
+  --duration-track-change: 700ms; /* troca de música (capa, texto e cor) */
   --duration-mode-change: 320ms; /* janela <-> tag */
+  --duration-wave: 1.1s; /* uma volta da onda (menor = mais rápida) */
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -137,19 +139,6 @@ button {
   height: var(--icon-size-xl);
 }
 
-/* ---------- Vidro: receita reutilizável ----------
-   Para usar em qualquer bloco, basta adicionar a classe .glass no HTML. */
-
-.glass {
-  background: linear-gradient(to bottom, var(--glass-top), var(--glass-bottom));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  border: 1px solid var(--glass-border);
-  /* A linha interna clara em cima imita o brilho do vidro. */
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    var(--glass-shadow);
-}
-
 /* ---------- Janela ---------- */
 
 .player {
@@ -158,60 +147,10 @@ button {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  container: player / size; /* permite adaptar o layout ao tamanho da janela */
-  background: var(--color-fallback-bg);
-  border: 1px solid var(--glass-border);
+  background-color: var(--theme-bg);
   border-radius: var(--radius-window);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-}
-
-/* Capa em tela cheia, nítida. */
-.backdrop {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.backdrop__img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  /* ANIMAÇÃO: crossfade da capa na troca de música. */
-  transition: opacity var(--duration-track-change) var(--ease-standard);
-}
-
-.backdrop__img.is-visible {
-  opacity: 1;
-  animation: cover-in calc(var(--duration-track-change) * 1.4) var(--ease-standard);
-}
-
-@keyframes cover-in {
-  from {
-    transform: scale(1.06);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-/* Sombras por cima da capa: garantem leitura dos botões (topo) e do cartão (base). */
-.player__shade {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 32%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 60%);
-}
-
-/* Tudo que não é fundo fica acima do fundo e da sombra. */
-.tag,
-.full {
-  position: relative;
+  /* ANIMAÇÃO: a cor de fundo escorre para a da nova capa. */
+  transition: background-color var(--duration-track-change) var(--ease-standard);
 }
 
 /* ---------- Alternância entre os modos ---------- */
@@ -245,11 +184,89 @@ button {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: var(--space-sm);
+  gap: var(--space-md);
+  padding: var(--space-md);
 }
 
-/* Botões do topo: só aparecem com o mouse sobre a janela (ou com foco no teclado). */
+/* Cartão da capa: ocupa o espaço que sobrar. */
+.cover {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-cover);
+  background: var(--surface);
+}
+
+.cover__images,
+.cover__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cover__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  /* ANIMAÇÃO: crossfade da capa na troca de música. */
+  transition: opacity var(--duration-track-change) var(--ease-standard);
+}
+
+.cover__img.is-visible {
+  opacity: 1;
+  animation: cover-in calc(var(--duration-track-change) * 1.4) var(--ease-standard);
+}
+
+@keyframes cover-in {
+  from {
+    transform: scale(1.06);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Escurece só o pé da capa, para o texto branco ficar legível sobre qualquer arte. */
+.cover__shade {
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0) 52%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0) 26%);
+}
+
+/* Botões soltos sobre a capa (cor sólida translúcida, sem desfoque). */
+.chip-btn {
+  display: grid;
+  place-items: center;
+  width: var(--btn-chip-size);
+  height: var(--btn-chip-size);
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  background: var(--color-chip);
+  transition:
+    background var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.chip-btn:hover {
+  background: var(--color-chip-hover);
+  transform: scale(1.08);
+}
+
+.chip-btn:active {
+  transform: scale(0.92);
+}
+
+/* Barra do topo: só aparece com o mouse sobre a janela (ou com foco no teclado). */
 .topbar {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  right: var(--space-md);
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -266,51 +283,74 @@ button {
   transform: translateY(0);
 }
 
-.topbar__spacer {
+/* Volume: pílula no centro da barra do topo. */
+.volume {
   flex: 1;
-}
-
-.icon-btn {
-  display: grid;
-  place-items: center;
-  width: var(--top-btn-size);
-  height: var(--top-btn-size);
-  border-radius: var(--radius-pill);
-  color: var(--color-text);
-  background: var(--glass-control);
-  backdrop-filter: blur(14px) saturate(160%);
-  border: 1px solid var(--glass-border);
-  transition:
-    background var(--duration-fast),
-    transform var(--duration-fast) var(--ease-standard);
-}
-
-.icon-btn:hover {
-  background: var(--glass-control-hover);
-  transform: scale(1.08);
-}
-
-.icon-btn:active {
-  transform: scale(0.92);
-}
-
-/* Cartão de vidro flutuante com tudo que se usa. */
-.deck {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-  margin-top: auto;
-  padding: var(--space-md);
-  border-radius: var(--radius-card);
-}
-
-.deck__head {
+  min-width: 0;
+  max-width: 150px;
+  height: var(--btn-chip-size);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--color-chip);
 }
 
-/* ---------- Título / artista · álbum ---------- */
+.volume__icon {
+  color: var(--color-text-muted);
+}
+
+/* Trilha fina com a parte preenchida (--value, de 0 a 100, vem do JS). */
+.volume__slider {
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.volume__slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--color-text) calc(var(--value, 0) * 1%),
+    rgba(255, 255, 255, 0.3) calc(var(--value, 0) * 1%)
+  );
+}
+
+.volume__slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--color-text);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.volume__slider:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+}
+
+.volume__slider:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Texto por cima da capa, embaixo à esquerda; coração embaixo à direita. */
+.cover__bottom {
+  position: absolute;
+  left: var(--space-md);
+  right: var(--space-md);
+  bottom: var(--space-md);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
 
 .info {
   flex: 1;
@@ -321,15 +361,16 @@ button {
   font-size: var(--font-size-title);
   font-weight: 700;
   letter-spacing: -0.01em;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
 }
 
 .info__sub {
   display: flex;
   gap: 5px;
+  margin-top: 2px;
   font-size: var(--font-size-artist);
   white-space: nowrap;
 }
@@ -369,55 +410,114 @@ button {
   }
 }
 
-/* ---------- Barra de progresso ---------- */
+/* Coração: o cheio "pula" para dentro quando curtido. */
+.like-btn__icon {
+  grid-area: 1 / 1;
+  transition:
+    transform var(--duration-play-toggle) var(--ease-bounce),
+    opacity var(--duration-fast);
+}
+
+.like-btn__icon--on {
+  opacity: 0;
+  transform: scale(0.3);
+  color: var(--color-like);
+}
+
+#like-btn.is-liked .like-btn__icon--on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#like-btn.is-liked .like-btn__icon--off {
+  opacity: 0;
+}
+
+#like-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ---------- Barra de progresso em onda ---------- */
 
 .progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.progress__time {
-  min-width: 30px;
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.progress__time:last-child {
-  text-align: right;
+  padding: 0 9px; /* folga para a bolinha não sair do cartão nas pontas */
 }
 
 .progress__bar {
-  flex: 1;
-  /* Área de clique maior que a barra visível */
-  padding: 7px 0;
+  position: relative;
+  height: 22px;
   cursor: pointer;
 }
 
-.progress__track {
-  height: var(--progress-height);
+/* Trilha reta: só do ponto atual até o fim. */
+.wave__rest {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--progress, 0) * 100%);
+  right: 0;
+  height: 4px;
+  transform: translateY(-50%);
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.25);
-  overflow: hidden;
-  transition: transform var(--duration-fast) var(--ease-standard);
+  background: var(--track);
 }
 
-.progress__bar:hover .progress__track {
-  transform: scaleY(1.6);
+/* Parte tocada: uma faixa recortada em onda (máscara) que corre da direita para a esquerda
+   enquanto toca. O JS só atualiza --progress, de 0 a 1. */
+.wave__played,
+.tag__wave-played,
+.tag__wave::before {
+  -webkit-mask: var(--wave-mask) repeat-x 0 50% / var(--wave-length) var(--wave-height);
+  mask: var(--wave-mask) repeat-x 0 50% / var(--wave-length) var(--wave-height);
+  animation: wave-flow var(--duration-wave) linear infinite paused;
 }
 
-/* O preenchimento anima por scaleX (o JS só atualiza --progress, de 0 a 1). */
-.progress__fill {
-  height: 100%;
+.player.is-playing .wave__played,
+.player.is-playing .tag__wave-played,
+.player.is-playing .tag__wave::before {
+  animation-play-state: running;
+}
+
+@keyframes wave-flow {
+  to {
+    -webkit-mask-position: calc(-1 * var(--wave-length)) 50%;
+    mask-position: calc(-1 * var(--wave-length)) 50%;
+  }
+}
+
+.wave__played {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--progress, 0) * 100%);
+  background: var(--theme-accent);
+}
+
+.wave__thumb {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--progress, 0) * 100%);
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
   background: var(--color-text);
-  border-radius: var(--radius-pill);
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
+  border: 5px solid var(--ring);
+  box-sizing: border-box;
+  transition: transform var(--duration-fast) var(--ease-bounce);
 }
 
-.progress__bar:hover .progress__fill {
-  background: var(--color-accent);
+.progress__bar:hover .wave__thumb {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.progress__times {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Controles ---------- */
@@ -425,48 +525,88 @@ button {
 .controls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
+  justify-content: space-between;
+  padding: 0 var(--space-xs);
 }
 
-.controls__btn {
+/* Aleatório e repetir: só o ícone, sem fundo. */
+.controls__plain {
   position: relative;
   display: grid;
   place-items: center;
-  width: var(--control-btn-size);
-  height: var(--control-btn-size);
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   transition:
     color var(--duration-fast),
-    background var(--duration-fast),
     transform var(--duration-fast) var(--ease-standard);
 }
 
-.controls__btn:hover {
+.controls__plain:hover {
   color: var(--color-text);
-  background: rgba(255, 255, 255, 0.16);
-  transform: scale(1.08);
+  transform: scale(1.1);
 }
 
-.controls__btn:active {
+.controls__plain:active {
   transform: scale(0.9);
+}
+
+/* Anterior, play/pause e próxima: círculos grandes de cor sólida. */
+.controls__round {
+  display: grid;
+  place-items: center;
+  width: var(--btn-round-size);
+  height: var(--btn-round-size);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--color-text);
+  transition:
+    background var(--duration-fast),
+    transform var(--duration-fast) var(--ease-bounce);
+}
+
+.controls__round:hover {
+  background: var(--surface-hover);
+  transform: scale(1.06);
+}
+
+.controls__round:active {
+  transform: scale(0.93);
+}
+
+.controls__round.play-btn {
+  width: var(--btn-play-size);
+  height: var(--btn-play-size);
 }
 
 /* Aleatório ligado e repetir em "contexto" ou "faixa" */
 #shuffle-btn.is-active,
 #repeat-btn[data-repeat='context'],
 #repeat-btn[data-repeat='track'] {
-  color: var(--color-accent);
+  color: var(--color-active);
+}
+
+/* Um pontinho embaixo do ícone mostra que está ligado. */
+#shuffle-btn.is-active::before,
+#repeat-btn[data-repeat='context']::before,
+#repeat-btn[data-repeat='track']::before {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--theme-accent);
 }
 
 /* Repetir "faixa" mostra um 1 no canto do ícone */
 #repeat-btn[data-repeat='track']::after {
   content: '1';
   position: absolute;
-  right: 4px;
-  bottom: 4px;
-  font-size: 8px;
+  right: 6px;
+  top: 6px;
+  font-size: 9px;
   font-weight: 700;
 }
 
@@ -477,36 +617,6 @@ button {
 
 .play-btn {
   position: relative;
-  display: grid;
-  place-items: center;
-  width: var(--play-btn-size);
-  height: var(--play-btn-size);
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--color-on-light);
-  box-shadow:
-    inset 0 1px 0 #ffffff,
-    0 6px 16px rgba(0, 0, 0, 0.3);
-  transition: transform var(--duration-fast) var(--ease-bounce);
-}
-
-/* Na tag o botão é de vidro (mais discreto). */
-.play-btn--tag {
-  width: var(--tag-play-size);
-  height: var(--tag-play-size);
-  background: rgba(255, 255, 255, 0.24);
-  color: var(--color-text);
-  border: 1px solid var(--glass-border);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-}
-
-.play-btn:hover {
-  transform: scale(1.08);
-}
-
-.play-btn:active {
-  transform: scale(0.92);
 }
 
 .play-btn__icon {
@@ -528,148 +638,19 @@ button {
   transform: scale(1) rotate(0deg);
 }
 
-/* ---------- Curtir ---------- */
-
-.extras__btn {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: var(--control-btn-size);
-  height: var(--control-btn-size);
-  border-radius: var(--radius-pill);
-  color: var(--color-text-muted);
-  transition:
-    color var(--duration-fast),
-    background var(--duration-fast),
-    transform var(--duration-fast) var(--ease-standard);
-}
-
-.extras__btn:hover {
-  color: var(--color-text);
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.extras__btn:active {
-  transform: scale(0.88);
-}
-
-.extras__btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-/* Coração: o cheio "pula" para dentro quando curtido. */
-.like-btn__icon {
-  grid-area: 1 / 1;
-  transition:
-    transform var(--duration-play-toggle) var(--ease-bounce),
-    opacity var(--duration-fast);
-}
-
-.like-btn__icon--on {
-  opacity: 0;
-  transform: scale(0.3);
-  color: var(--color-accent);
-}
-
-#like-btn.is-liked .like-btn__icon--on {
-  opacity: 1;
-  transform: scale(1);
-}
-
-#like-btn.is-liked .like-btn__icon--off {
-  opacity: 0;
-}
-
-/* ---------- Volume (aparece com o mouse sobre a janela) ---------- */
-
-.extras {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  max-height: 0;
-  margin-top: calc(-1 * var(--space-sm)); /* anula o gap do cartão enquanto escondido */
-  opacity: 0;
-  overflow: hidden;
-  transition:
-    max-height var(--duration-reveal) var(--ease-standard),
-    margin var(--duration-reveal) var(--ease-standard),
-    opacity var(--duration-reveal);
-}
-
-.player:hover .extras,
-.player:focus-within .extras {
-  max-height: 22px;
-  margin-top: 0;
-  opacity: 1;
-}
-
-.extras__volume-icon {
-  color: var(--color-text-muted);
-}
-
-/* Trilha fina com a parte preenchida (--value, de 0 a 100, vem do JS). */
-.extras__volume {
-  flex: 1;
-  min-width: 0;
-  height: 18px;
-  cursor: pointer;
-  appearance: none;
-  background: transparent;
-}
-
-.extras__volume::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(
-    to right,
-    var(--color-text) calc(var(--value, 0) * 1%),
-    rgba(255, 255, 255, 0.25) calc(var(--value, 0) * 1%)
-  );
-}
-
-.extras__volume::-webkit-slider-thumb {
-  appearance: none;
-  width: 13px;
-  height: 13px;
-  margin-top: -4.5px;
-  border-radius: 50%;
-  background: var(--color-text);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-  transition: transform var(--duration-fast) var(--ease-bounce);
-}
-
-.extras__volume:hover::-webkit-slider-thumb {
-  transform: scale(1.2);
-}
-
-.extras__volume:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-/* Janela bem baixinha: esconde o que é secundário para o cartão não cobrir a capa. */
-@container player (max-height: 300px) {
-  #shuffle-btn,
-  #repeat-btn,
-  .progress__time {
-    display: none;
-  }
-}
-
 /* Spotify aberto sem sessão: só o play funciona até a música começar. */
 .player.is-idle #shuffle-btn,
 .player.is-idle #previous-btn,
 .player.is-idle #next-btn,
 .player.is-idle #repeat-btn,
 .player.is-idle .progress__bar,
-.player.is-idle .extras__volume,
-.player.is-idle .extras__volume-icon {
+.player.is-idle .volume,
+.player.is-idle .tag__btn {
   opacity: 0.35;
   pointer-events: none;
 }
 
-/* ---------- Modo tag (barra mini) ---------- */
+/* ---------- Modo tag (pílula mini) ---------- */
 
 .player[data-mode='tag'] {
   height: calc(100% - 2 * var(--window-margin-tag));
@@ -677,36 +658,18 @@ button {
   flex-direction: row;
   align-items: center;
   border-radius: var(--radius-tag);
-  box-shadow:
-    inset 0 1px 0 var(--glass-highlight),
-    var(--glass-shadow);
-}
-
-/* Na tag a capa vira só um fundo desfocado (a nítida fica na miniatura). */
-.player[data-mode='tag'] .backdrop__img {
-  inset: -30%;
-  width: 160%;
-  height: 160%;
-  filter: blur(var(--backdrop-blur)) saturate(var(--backdrop-saturate))
-    brightness(var(--backdrop-brightness));
-}
-
-.player[data-mode='tag'] .player__shade {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.16),
-    rgba(255, 255, 255, 0) 55%
-  );
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .tag {
+  position: relative;
   flex: 1;
   min-width: 0;
   height: 100%;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 0 var(--space-sm) 0 6px;
+  gap: var(--space-md);
+  padding: 0 var(--space-sm) var(--wave-height) var(--space-md);
 }
 
 .tag__cover {
@@ -714,59 +677,112 @@ button {
   height: var(--tag-cover-size);
   flex-shrink: 0;
   object-fit: cover;
-  border-radius: var(--radius-thumb);
-  background: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 0 0 1px var(--glass-border);
+  border-radius: 50%; /* capa redonda, como no One UI */
+  background: var(--surface);
 }
 
-.tag__text {
+.tag__main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.tag__title,
-.tag__artist {
+.tag__line {
+  max-width: 100%;
+  font-size: var(--font-size-artist);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .tag__title {
-  font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .tag__artist {
-  font-size: 10.5px;
   color: var(--color-text-muted);
+}
+
+.tag__artist:not(:empty)::before {
+  content: ' · ';
+}
+
+.tag__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.tag__btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.tag__btn:hover {
+  transform: scale(1.12);
+}
+
+.tag__btn:active {
+  transform: scale(0.9);
+}
+
+.play-btn--tag {
+  display: grid;
+  place-items: center;
+  width: var(--tag-play-size);
+  height: var(--tag-play-size);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.play-btn--tag:hover {
+  transform: scale(1.08);
+}
+
+.play-btn--tag:active {
+  transform: scale(0.92);
 }
 
 .tag__expand {
+  align-self: flex-start;
+  margin-top: var(--space-sm);
   width: 24px;
   height: 24px;
   background: transparent;
-  border-color: transparent;
-  backdrop-filter: none;
   color: var(--color-text-muted);
 }
 
-/* A linha de progresso da tag (preenche com scaleX; o JS só muda --progress). */
-.tag__progress {
+/* Onda na borda de baixo da pílula: base apagada + parte tocada mais clara. */
+.tag__wave {
   position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 4px;
-  height: 2px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.2);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--wave-height);
   overflow: hidden;
 }
 
-.tag__progress-fill {
-  height: 100%;
-  background: var(--color-text);
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
+.tag__wave::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.tag__wave-played {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: calc(var(--progress, 0) * 100%);
+  background: var(--theme-accent);
 }
 
 /* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */
@@ -782,8 +798,7 @@ button {
   gap: var(--space-md);
   padding: var(--space-md);
   text-align: center;
-  background: rgba(20, 20, 26, 0.6);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  background: var(--theme-bg);
 }
 
 .status__text {
@@ -794,12 +809,11 @@ button {
 }
 
 .status__action {
-  padding: 9px 22px;
+  padding: 10px 24px;
   border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-on-light);
   font-weight: 700;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
 /* Na tag a mensagem vira uma linha só, com o botão ao lado. */
@@ -817,7 +831,7 @@ button {
 }
 
 .player[data-mode='tag'] .status__action {
-  padding: 5px 12px;
+  padding: 6px 14px;
   font-size: var(--font-size-small);
   flex-shrink: 0;
 }
@@ -841,7 +855,7 @@ button {
 
 .toast {
   bottom: var(--space-md);
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--color-text);
   color: var(--color-on-light);
   opacity: 0;
   pointer-events: none;

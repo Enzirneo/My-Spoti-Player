@@ -1,6 +1,7 @@
 // Funções que atualizam o DOM. Nenhuma regra de negócio aqui: recebem dados
 // já prontos e só refletem na tela. Estilo fica no CSS (aqui só troca classes).
 import { msToClock } from '../shared/format.js';
+import { loadTheme } from './palette.js';
 import { progressRatio } from './progress.js';
 
 const TOAST_DURATION_MS = 2200;
@@ -26,6 +27,8 @@ export const elements = {
   tagTitle: $('tag-title'),
   tagArtist: $('tag-artist'),
   tagPlayButton: $('tag-play-btn'),
+  tagPreviousButton: $('tag-previous-btn'),
+  tagNextButton: $('tag-next-btn'),
   expandButton: $('expand-btn'),
   tagModeButton: $('tag-mode-btn'),
   info: $('info'),
@@ -60,12 +63,14 @@ function showCover(url) {
   const nextIndex = (visibleCoverIndex + 1) % elements.covers.length;
   const nextCover = elements.covers[nextIndex];
   const preloader = new Image();
+  preloader.crossOrigin = 'anonymous'; // sem isso o navegador não deixa ler as cores da capa
   preloader.onload = () => {
     nextCover.src = url;
     elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
     nextCover.classList.add('is-visible');
     visibleCoverIndex = nextIndex;
     elements.tagCover.src = url;
+    applyTheme(loadTheme(preloader));
   };
   preloader.src = url;
 }
@@ -73,6 +78,19 @@ function showCover(url) {
 function clearCover() {
   elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
   elements.tagCover.removeAttribute('src');
+  applyTheme(null);
+}
+
+/** Troca as cores do app pelas da capa; sem tema, volta ao cinza neutro do CSS. */
+function applyTheme(theme) {
+  const { style } = elements.player;
+  if (!theme) {
+    style.removeProperty('--theme-bg');
+    style.removeProperty('--theme-accent');
+    return;
+  }
+  style.setProperty('--theme-bg', theme.background);
+  style.setProperty('--theme-accent', theme.accent);
 }
 
 function replayAnimation(element) {
@@ -95,6 +113,7 @@ export function renderTrack(track) {
 
 export function renderControls(state) {
   elements.player.classList.toggle('is-idle', Boolean(state.isIdle));
+  elements.player.classList.toggle('is-playing', state.isPlaying); // a onda só corre tocando
   for (const button of [elements.playButton, elements.tagPlayButton]) {
     button.classList.toggle('is-playing', state.isPlaying);
   }
