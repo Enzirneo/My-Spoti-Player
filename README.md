@@ -44,13 +44,17 @@ ativo.
 
 ## Uso
 
-- O app abre como uma **cápsula** compacta, fixa no topo e no centro da tela: capa, título,
-  linha de progresso e play/pause.
-- **Clique na cápsula** para abrir o painel completo (capa grande, controles, volume,
-  curtir, copiar link). O painel pode ser redimensionado pelas bordas e o tamanho é
-  lembrado. Para voltar à cápsula, use a seta ^ no canto ou a tecla `Esc`.
-- No painel, o **×** fecha o app e o **–** oculta na bandeja. Pelo ícone da bandeja você
-  mostra/oculta ou escolhe **Sair** (é o jeito de fechar quando só a cápsula está visível).
+- O app abre como uma **janelinha quadrada** com a capa em tela cheia e um cartão de vidro
+  com os controles. Arraste por qualquer área livre; redimensione pelas bordas. A posição
+  e o tamanho são lembrados.
+- Passe o mouse sobre a janela para ver os botões do topo (modo mini, copiar link, ocultar,
+  fechar) e o controle de volume.
+- O botão de **modo mini** transforma a janela numa **tag** pequena (capa, título, linha de
+  progresso e play/pause). Ela começa no topo e no centro da tela, mas pode ser arrastada
+  para qualquer lugar, e a posição também é lembrada. O botão com setas na tag volta para a
+  janela.
+- O **×** fecha o app e o **–** oculta na bandeja. Pelo ícone da bandeja você mostra/oculta
+  ou escolhe **Sair** (útil quando só a tag está visível).
 - Clique na barra de progresso para pular para aquele ponto.
 
 ## Personalizar o visual
@@ -59,7 +63,7 @@ Todo o visual está em [`src/renderer/style.css`](src/renderer/style.css). O blo
 no topo concentra cores, raios, fontes, tamanhos e durações de animação (cada grupo está
 comentado). O resto do arquivo só usa essas variáveis. O efeito de vidro (glass) usa as variáveis `--glass-*` e `--backdrop-*`. Há exemplos de
 animação no botão play/pause, na troca de capa/texto, no coração de curtir e na troca
-entre cápsula e painel.
+entre janela e tag.
 
 ## Estrutura
 
