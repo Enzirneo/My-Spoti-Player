@@ -29,7 +29,6 @@ export const elements = {
   tagPlayButton: $('tag-play-btn'),
   tagPreviousButton: $('tag-previous-btn'),
   tagNextButton: $('tag-next-btn'),
-  expandButton: $('expand-btn'),
   tagModeButton: $('tag-mode-btn'),
   info: $('info'),
   title: $('title'),
