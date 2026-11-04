@@ -48,9 +48,65 @@ export function normalizePlayback(apiPlayback, receivedAt) {
   };
 }
 
-/** Spotify aberto no computador, mas sem sessão: só dá para pedir que retome. */
-export function normalizeIdle(device, receivedAt) {
-  return { status: 'idle', deviceId: device.id, receivedAt };
+/** Minúsculas e sem sufixos entre parênteses/colchetes: "Song (feat. X)" vira "song". */
+function simplifyTitle(title) {
+  return title
+    .toLowerCase()
+    .replace(/[([].*?[)\]]/g, '')
+    .trim();
+}
+
+/** Acha, nos resultados da busca, a faixa que corresponde à música lida do Windows. */
+export function matchSearchResult(items, media) {
+  const wantedTitle = simplifyTitle(media.title);
+  const wantedArtist = media.artist.toLowerCase();
+
+  return (
+    items.find((item) => {
+      const title = simplifyTitle(item.name);
+      const isSameTitle = title === wantedTitle || title.includes(wantedTitle);
+      const isSameArtist = (item.artists ?? []).some((artist) =>
+        wantedArtist.includes(artist.name.toLowerCase())
+      );
+      return isSameTitle && isSameArtist;
+    }) ?? null
+  );
+}
+
+function trackFromMedia(media) {
+  return {
+    id: `media:${media.title}|${media.artist}`,
+    name: media.title,
+    artists: media.artist,
+    album: media.album,
+    coverUrl: '',
+    durationMs: media.durationMs,
+    shareUrl: '',
+    isLikeable: false,
+  };
+}
+
+/**
+ * Spotify aberto no computador, mas sem sessão na API.
+ * `media` é o que o app tem carregado (lido do Windows); `found` é a faixa
+ * correspondente na API (dá capa, id e link). Sem `media`, só dá para pedir "Tocar".
+ */
+export function normalizeIdle({ device, media, found }, receivedAt) {
+  if (!media) return { status: 'idle', deviceId: device.id, receivedAt };
+
+  return {
+    status: 'ready',
+    isIdle: true,
+    receivedAt,
+    isPlaying: false,
+    progressMs: media.positionMs,
+    isShuffled: false,
+    repeatMode: 'off',
+    volume: device.volume_percent ?? 0,
+    canSetVolume: false,
+    deviceId: device.id,
+    track: found ? normalizeTrack(found) : trackFromMedia(media),
+  };
 }
 
 /**

@@ -18,7 +18,7 @@ const POLL_INTERVAL_MS = 1500;
 const POST_COMMAND_POLL_MS = 800; // a API demora um instante para refletir o comando
 const ERROR_BACKOFF_FACTOR = 2;
 const VOLUME_DEBOUNCE_MS = 150;
-const IDLE_REFRESH_MS = 10_000; // quanto tempo reaproveitar a leitura do Spotify ocioso
+const IDLE_REFRESH_MS = 2000; // quanto tempo reaproveitar a leitura do Spotify ocioso
 const START_GRACE_MS = 5000; // após dar play, ignora respostas "sem dispositivo" atrasadas
 
 const ERROR_MESSAGES = {
@@ -30,7 +30,7 @@ const ERROR_MESSAGES = {
 };
 
 let playback = null;
-let likedState = { trackId: null, isLiked: false };
+let likedState = { trackId: null, trackUri: null, isLiked: false };
 let isPollingEnabled = false;
 let isPolling = false;
 let isAdjustingVolume = false;
@@ -109,7 +109,7 @@ function applyPlayback(next) {
 
 async function loadIdleSession() {
   if (idleCache && Date.now() - idleCache.at < IDLE_REFRESH_MS) return idleCache.result;
-  const result = await api.getIdleDevice();
+  const result = await api.getIdleSession();
   if (result.ok) idleCache = { at: Date.now(), result };
   return result;
 }
@@ -123,13 +123,18 @@ async function handleNoDevice() {
   if (!idle.ok) return handlePollError(idle.error);
   if (!idle.data) return showSpotifyClosed();
 
-  showIdle(normalizeIdle(idle.data, Date.now()));
+  applyIdle(normalizeIdle(idle.data, Date.now()));
   return POLL_INTERVAL_MS;
 }
 
-function showIdle(idleState) {
-  playback = idleState;
+/** Spotify aberto sem sessão: mostra a música que ele tem carregada, ou só o botão "Tocar". */
+function applyIdle(idleState) {
   statusAction = 'resume';
+  if (idleState.status === 'ready') {
+    applyPlayback(idleState);
+    return;
+  }
+  playback = idleState;
   ui.renderStatus('idle', { actionLabel: 'Tocar' });
 }
 
@@ -185,17 +190,25 @@ async function runCommand({ action, value, send }) {
 
 /** Spotify aberto sem sessão: pede para ele retomar a sessão que tinha. */
 async function resumeIdleSpotify() {
-  const { deviceId } = playback;
+  const idleState = playback;
   ignoreNoDeviceUntil = Date.now() + START_GRACE_MS;
-  ui.renderStatus('resuming');
-  const result = await runCommand({ send: () => api.resumeOnDevice(deviceId) });
+  if (idleState.status === 'idle') ui.renderStatus('resuming');
+  const result = await runCommand({
+    action: idleState.status === 'ready' ? 'togglePlay' : undefined,
+    send: () => api.resumeOnDevice(idleState.deviceId),
+  });
   if (result.ok) return;
 
+  // Falhou: libera a próxima leitura para a tela voltar ao estado real.
   ignoreNoDeviceUntil = 0;
-  showIdle(playback);
+  idleCache = null;
 }
 
 function togglePlay() {
+  if (playback.isIdle) {
+    resumeIdleSpotify();
+    return;
+  }
   const shouldPlay = !playback.isPlaying;
   runCommand({
     action: 'togglePlay',
@@ -235,22 +248,22 @@ function changeVolume() {
 // ---------- Curtir e copiar link ----------
 
 async function loadLikedState(track) {
-  likedState = { trackId: track.id, isLiked: false };
+  likedState = { trackId: track.id, trackUri: track.uri, isLiked: false };
   ui.renderLiked({ isLiked: false, isLikeable: track.isLikeable });
   if (!track.isLikeable) return;
 
-  const result = await api.isTrackLiked(track.id);
+  const result = await api.isTrackLiked(track.uri);
   if (!result.ok || likedState.trackId !== track.id) return;
   likedState.isLiked = result.data;
   ui.renderLiked({ isLiked: result.data, isLikeable: true });
 }
 
 async function toggleLiked() {
-  const { trackId, isLiked } = likedState;
+  const { trackId, trackUri, isLiked } = likedState;
   ui.renderLiked({ isLiked: !isLiked, isLikeable: true });
   likedState.isLiked = !isLiked;
 
-  const result = await api.setTrackLiked(trackId, !isLiked);
+  const result = await api.setTrackLiked(trackUri, !isLiked);
   if (result.ok || likedState.trackId !== trackId) return;
   likedState.isLiked = isLiked; // a API recusou: desfaz
   ui.renderLiked({ isLiked, isLikeable: true });

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizePlayback,
   normalizeIdle,
+  matchSearchResult,
   applyOptimistic,
   nextRepeatMode,
 } from '../../src/shared/state.js';
@@ -104,12 +105,70 @@ describe('nextRepeatMode', () => {
   });
 });
 
+describe('matchSearchResult', () => {
+  const media = { title: 'Song', artist: 'A' };
+
+  it('escolhe o resultado com mesmo título e artista', () => {
+    const other = { ...apiTrack, id: 'x', name: 'Outra', artists: [{ name: 'Z' }] };
+    expect(matchSearchResult([other, apiTrack], media)).toBe(apiTrack);
+  });
+
+  it('ignora diferença de maiúsculas e de sufixos como (feat. X)', () => {
+    const featured = { ...apiTrack, name: 'Song (feat. Someone)' };
+    expect(matchSearchResult([featured], { title: 'SONG', artist: 'a' })).toBe(featured);
+  });
+
+  it('devolve null quando nada combina', () => {
+    expect(
+      matchSearchResult([apiTrack], { title: 'Nada a ver', artist: 'Q' })
+    ).toBeNull();
+    expect(matchSearchResult([], media)).toBeNull();
+  });
+});
+
 describe('normalizeIdle', () => {
-  it('descreve o Spotify aberto sem sessão, guardando o dispositivo', () => {
-    expect(normalizeIdle({ id: 'pc' }, 5)).toEqual({
+  const device = { id: 'pc', volume_percent: 30 };
+  const media = {
+    title: 'Song',
+    artist: 'A',
+    album: 'Alb',
+    positionMs: 6000,
+    durationMs: 199000,
+  };
+
+  it('sem música no Windows, pede só para tocar', () => {
+    expect(normalizeIdle({ device, media: null, found: null }, 5)).toEqual({
       status: 'idle',
       deviceId: 'pc',
       receivedAt: 5,
+    });
+  });
+
+  it('com música do Windows e sem resultado da API, usa o texto local', () => {
+    const state = normalizeIdle({ device, media, found: null }, 5);
+    expect(state).toMatchObject({
+      status: 'ready',
+      isIdle: true,
+      isPlaying: false,
+      progressMs: 6000,
+      deviceId: 'pc',
+    });
+    expect(state.track).toMatchObject({
+      name: 'Song',
+      artists: 'A',
+      album: 'Alb',
+      durationMs: 199000,
+      isLikeable: false,
+    });
+  });
+
+  it('com resultado da API, completa capa, id e link', () => {
+    const state = normalizeIdle({ device, media, found: apiTrack }, 5);
+    expect(state.track).toMatchObject({
+      id: 't1',
+      coverUrl: 'big.jpg',
+      shareUrl: 'https://open.spotify.com/track/t1',
+      isLikeable: true,
     });
   });
 });

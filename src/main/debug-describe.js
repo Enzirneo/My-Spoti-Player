@@ -14,3 +14,9 @@ export function describePlayback(playback) {
 export function describeDevices(devices) {
   return devices.length ? devices.map(describeDevice).join(' | ') : 'nenhum dispositivo';
 }
+
+export function describeIdle(idle) {
+  if (!idle?.media) return 'sem música no Windows';
+  const apiResult = idle.found ? 'achou na API' : 'não achou na API';
+  return `Windows: "${idle.media.title}" - ${idle.media.artist}; ${apiResult}`;
+}
