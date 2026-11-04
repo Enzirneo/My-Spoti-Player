@@ -78,6 +78,7 @@ export function renderTrack(track) {
 }
 
 export function renderControls(state) {
+  elements.player.classList.toggle('is-idle', Boolean(state.isIdle));
   elements.playButton.classList.toggle('is-playing', state.isPlaying);
   elements.shuffleButton.classList.toggle('is-active', state.isShuffled);
   elements.repeatButton.dataset.repeat = state.repeatMode;
