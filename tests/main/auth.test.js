@@ -102,7 +102,12 @@ describe('createTokenManager', () => {
 
   it('reutiliza o access token enquanto não está perto de expirar', async () => {
     const store = memoryStore({
-      tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 100000 },
+      tokens: {
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: 100000,
+        scope: SCOPES.join(' '),
+      },
     });
     const fetchMock = vi.fn();
     const manager = createTokenManager({
@@ -117,7 +122,12 @@ describe('createTokenManager', () => {
 
   it('renova e salva o token quando está expirando', async () => {
     const store = memoryStore({
-      tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 5000 },
+      tokens: {
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: 5000,
+        scope: SCOPES.join(' '),
+      },
     });
     const fetchMock = vi
       .fn()
@@ -135,7 +145,12 @@ describe('createTokenManager', () => {
 
   it('força a renovação com forceRefresh mesmo com token válido', async () => {
     const store = memoryStore({
-      tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 1e12 },
+      tokens: {
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: 1e12,
+        scope: SCOPES.join(' '),
+      },
     });
     const fetchMock = vi
       .fn()
@@ -146,7 +161,12 @@ describe('createTokenManager', () => {
 
   it('apaga os tokens e devolve null quando o refresh é recusado', async () => {
     const store = memoryStore({
-      tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 0 },
+      tokens: {
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: 0,
+        scope: SCOPES.join(' '),
+      },
     });
     const fetchMock = vi
       .fn()
@@ -159,12 +179,53 @@ describe('createTokenManager', () => {
 
   it('mantém os tokens quando o refresh falha por rede', async () => {
     const store = memoryStore({
-      tokens: { accessToken: 'a', refreshToken: 'r', expiresAt: 0 },
+      tokens: {
+        accessToken: 'a',
+        refreshToken: 'r',
+        expiresAt: 0,
+        scope: SCOPES.join(' '),
+      },
     });
     const fetchMock = vi.fn().mockRejectedValue(new TypeError('offline'));
     const manager = createTokenManager({ store, clientId: 'c', fetch: fetchMock });
 
     await expect(manager.getAccessToken()).rejects.toThrow('offline');
     expect(store.get('tokens')).not.toBeNull();
+  });
+});
+
+describe('escopos salvos', () => {
+  it('trata login antigo (sem os escopos atuais) como não logado', async () => {
+    const store = {
+      data: {
+        tokens: {
+          accessToken: 'a',
+          refreshToken: 'r',
+          expiresAt: 1e12,
+          scope: 'user-library-read',
+        },
+      },
+      get(key) {
+        return this.data[key];
+      },
+      set(key, value) {
+        this.data[key] = value;
+      },
+    };
+    const manager = createTokenManager({ store, clientId: 'c', fetch: vi.fn() });
+    expect(manager.isLoggedIn()).toBe(false);
+    expect(await manager.getAccessToken()).toBeNull();
+  });
+
+  it('aceita login com todos os escopos atuais', async () => {
+    const tokens = {
+      accessToken: 'a',
+      refreshToken: 'r',
+      expiresAt: 1e12,
+      scope: SCOPES.join(' '),
+    };
+    const store = { get: () => tokens, set: () => {} };
+    const manager = createTokenManager({ store, clientId: 'c', fetch: vi.fn() });
+    expect(manager.isLoggedIn()).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ export const SCOPES = [
   'user-read-currently-playing',
   'user-library-read',
   'user-library-modify',
+  'user-read-recently-played',
 ];
 
 const AUTHORIZE_URL = 'https://accounts.spotify.com/authorize';
@@ -56,6 +57,7 @@ async function requestTokens({ params, fetch = globalThis.fetch, now = Date.now 
     accessToken: body.access_token,
     refreshToken: body.refresh_token,
     expiresAt: now() + body.expires_in * MS_PER_SECOND,
+    scope: body.scope,
   };
 }
 
@@ -72,7 +74,7 @@ export function exchangeCodeForTokens({ clientId, code, verifier, ...deps }) {
   });
 }
 
-export async function refreshAccessToken({ clientId, refreshToken, ...deps }) {
+export async function refreshAccessToken({ clientId, refreshToken, scope, ...deps }) {
   const tokens = await requestTokens({
     ...deps,
     params: {
@@ -82,7 +84,11 @@ export async function refreshAccessToken({ clientId, refreshToken, ...deps }) {
     },
   });
   // O Spotify nem sempre devolve um refresh token novo; nesse caso vale o antigo.
-  return { ...tokens, refreshToken: tokens.refreshToken ?? refreshToken };
+  return {
+    ...tokens,
+    refreshToken: tokens.refreshToken ?? refreshToken,
+    scope: tokens.scope ?? scope,
+  };
 }
 
 /**
@@ -92,11 +98,19 @@ export async function refreshAccessToken({ clientId, refreshToken, ...deps }) {
 export function createTokenManager({ store, clientId, fetch, now = Date.now }) {
   let pendingRefresh = null;
 
+  // Login feito antes de um escopo novo existir precisa ser refeito.
+  function readValidTokens() {
+    const tokens = store.get('tokens');
+    const grantedScopes = (tokens?.scope ?? '').split(' ');
+    return SCOPES.every((scope) => grantedScopes.includes(scope)) ? tokens : null;
+  }
+
   async function refresh(tokens) {
     try {
       const renewed = await refreshAccessToken({
         clientId,
         refreshToken: tokens.refreshToken,
+        scope: tokens.scope,
         fetch,
         now,
       });
@@ -111,7 +125,7 @@ export function createTokenManager({ store, clientId, fetch, now = Date.now }) {
   }
 
   async function getAccessToken({ forceRefresh = false } = {}) {
-    const tokens = store.get('tokens');
+    const tokens = readValidTokens();
     if (!tokens) return null;
     if (!forceRefresh && tokens.expiresAt - now() > EXPIRY_MARGIN_MS)
       return tokens.accessToken;
@@ -125,6 +139,6 @@ export function createTokenManager({ store, clientId, fetch, now = Date.now }) {
     getAccessToken,
     saveTokens: (tokens) => store.set('tokens', tokens),
     clearTokens: () => store.set('tokens', null),
-    isLoggedIn: () => Boolean(store.get('tokens')),
+    isLoggedIn: () => Boolean(readValidTokens()),
   };
 }

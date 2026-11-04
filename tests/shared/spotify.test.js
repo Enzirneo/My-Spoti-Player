@@ -10,7 +10,8 @@ import {
   isTrackLiked,
   setTrackLiked,
   getDevices,
-  transferPlayback,
+  getRecentlyPlayed,
+  playOnDevice,
 } from '../../src/shared/spotify.js';
 
 const BASE = 'https://api.spotify.com/v1';
@@ -159,15 +160,52 @@ describe('dispositivos', () => {
     expect(await getDevices({ token: 't', fetch: fetchMock })).toEqual(devices);
     expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/me/player/devices`);
   });
+});
 
-  it('transferPlayback envia o dispositivo e play=false por padrão', async () => {
+describe('histórico e início de reprodução', () => {
+  it('getRecentlyPlayed devolve o item mais recente', async () => {
+    const item = { track: { id: 't1' }, context: { uri: 'spotify:album:a1' } };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(response(200, { body: { items: [item] } }));
+    expect(await getRecentlyPlayed({ token: 't', fetch: fetchMock })).toEqual(item);
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/me/player/recently-played?limit=1`);
+  });
+
+  it('getRecentlyPlayed devolve null quando o histórico está vazio', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response(200, { body: { items: [] } }));
+    expect(await getRecentlyPlayed({ token: 't', fetch: fetchMock })).toBeNull();
+  });
+
+  it('playOnDevice inicia no dispositivo, continuando o contexto na faixa', async () => {
     const fetchMock = vi.fn().mockResolvedValue(response(204));
-    await transferPlayback({ token: 't', fetch: fetchMock, deviceId: 'd1' });
+    await playOnDevice({
+      token: 't',
+      fetch: fetchMock,
+      deviceId: 'd1',
+      trackUri: 'spotify:track:t1',
+      contextUri: 'spotify:album:a1',
+    });
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(`${BASE}/me/player`);
+    expect(url).toBe(`${BASE}/me/player/play?device_id=d1`);
     expect(init.method).toBe('PUT');
-    expect(init.headers['Content-Type']).toBe('application/json');
-    expect(JSON.parse(init.body)).toEqual({ device_ids: ['d1'], play: false });
+    expect(JSON.parse(init.body)).toEqual({
+      context_uri: 'spotify:album:a1',
+      offset: { uri: 'spotify:track:t1' },
+    });
+  });
+
+  it('playOnDevice usa só a faixa quando não há contexto', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response(204));
+    await playOnDevice({
+      token: 't',
+      fetch: fetchMock,
+      deviceId: 'd1',
+      trackUri: 'spotify:track:t1',
+    });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      uris: ['spotify:track:t1'],
+    });
   });
 });

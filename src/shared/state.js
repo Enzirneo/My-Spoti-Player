@@ -18,6 +18,7 @@ function normalizeTrack(item) {
   const source = isTrack ? item.album : item.show;
   return {
     id: item.id,
+    uri: item.uri,
     name: item.name,
     artists: (item.artists ?? []).map((artist) => artist.name).join(', '),
     album: source?.name ?? '',
@@ -43,6 +44,29 @@ export function normalizePlayback(apiPlayback, receivedAt) {
     volume: apiPlayback.device?.volume_percent ?? 0,
     canSetVolume: Boolean(apiPlayback.device?.supports_volume),
     track: normalizeTrack(apiPlayback.item),
+  };
+}
+
+/**
+ * Spotify aberto mas sem sessão: mostra a última música tocada, pausada.
+ * `isIdle` avisa a UI que só o play funciona até a sessão existir.
+ */
+export function normalizeIdle({ device, recent }, receivedAt) {
+  if (!recent?.track) return { status: 'empty', receivedAt };
+
+  return {
+    status: 'ready',
+    isIdle: true,
+    receivedAt,
+    isPlaying: false,
+    progressMs: 0,
+    isShuffled: false,
+    repeatMode: 'off',
+    volume: device.volume_percent ?? 0,
+    canSetVolume: false,
+    deviceId: device.id,
+    contextUri: recent.context?.uri ?? null,
+    track: normalizeTrack(recent.track),
   };
 }
 

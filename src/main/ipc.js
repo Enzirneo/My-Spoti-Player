@@ -10,7 +10,8 @@ import {
   generateState,
 } from './auth.js';
 import { waitForAuthCode } from './callback-server.js';
-import { wakeSpotify } from './wake.js';
+import { findIdleSession } from './idle.js';
+import { launchSpotify } from './wake.js';
 
 // Protocolo registrado pelo app do Spotify no Windows.
 const SPOTIFY_APP_URI = 'spotify:';
@@ -19,6 +20,7 @@ const SPOTIFY_APP_URI = 'spotify:';
 const COMMANDS = {
   getPlayback: spotify.getPlayback,
   play: spotify.play,
+  playOnDevice: spotify.playOnDevice,
   pause: spotify.pause,
   next: spotify.nextTrack,
   previous: spotify.previousTrack,
@@ -89,14 +91,25 @@ export function registerIpc({ tokens, clientId }) {
 
   ipcMain.handle('auth:logout', () => tokens.clearTokens());
 
-  ipcMain.handle('spotify:wake', async () => {
+  ipcMain.handle('spotify:launch', async () => {
     try {
-      await wakeSpotify({
+      await launchSpotify({
         getDevices: () => callOrThrow(spotify.getDevices),
-        transfer: (deviceId) => callOrThrow(spotify.transferPlayback, { deviceId }),
         launch: () => shell.openExternal(SPOTIFY_APP_URI),
       });
       return { ok: true };
+    } catch (error) {
+      return toErrorResult(error);
+    }
+  });
+
+  ipcMain.handle('spotify:idle', async () => {
+    try {
+      const session = await findIdleSession({
+        getDevices: () => callOrThrow(spotify.getDevices),
+        getRecentlyPlayed: () => callOrThrow(spotify.getRecentlyPlayed),
+      });
+      return { ok: true, data: session };
     } catch (error) {
       return toErrorResult(error);
     }
