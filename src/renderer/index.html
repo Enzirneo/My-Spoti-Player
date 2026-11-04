@@ -47,6 +47,9 @@
         />
       </symbol>
       <symbol id="icon-minimize" viewBox="0 0 24 24"><path d="M6 19h12v2H6z" /></symbol>
+      <symbol id="icon-collapse" viewBox="0 0 24 24">
+        <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+      </symbol>
       <symbol id="icon-close" viewBox="0 0 24 24">
         <path
           d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
@@ -59,105 +62,160 @@
       </symbol>
     </svg>
 
-    <main class="player" id="player">
-      <!-- Duas camadas de capa: a nova entra por cima da antiga (crossfade). -->
-      <img class="player__cover" id="cover-a" alt="" />
-      <img class="player__cover" id="cover-b" alt="" />
-      <div class="player__overlay"></div>
+    <!-- data-mode: "capsule" (compacto, fixo no topo) ou "expanded" (painel completo). -->
+    <main class="player" id="player" data-mode="capsule">
+      <!-- Fundo: a capa desfocada. Duas camadas alternam para fazer crossfade. -->
+      <div class="backdrop" aria-hidden="true">
+        <img class="backdrop__img" id="cover-a" alt="" />
+        <img class="backdrop__img" id="cover-b" alt="" />
+      </div>
+      <div class="player__sheen" aria-hidden="true"></div>
 
-      <header class="topbar">
+      <!-- ===== Modo cápsula: capa, título, linha de progresso e play/pause ===== -->
+      <section class="capsule" id="capsule" title="Clique para abrir">
+        <img class="capsule__cover" id="capsule-cover" alt="" />
+        <div class="capsule__text">
+          <p class="capsule__title" id="capsule-title"></p>
+          <p class="capsule__artist" id="capsule-artist"></p>
+          <div class="capsule__progress"><div class="capsule__progress-fill"></div></div>
+        </div>
         <button
-          class="icon-btn"
-          id="hide-btn"
-          title="Ocultar na bandeja"
-          aria-label="Ocultar"
+          class="play-btn play-btn--compact"
+          id="capsule-play-btn"
+          title="Play/pause"
+          aria-label="Play/pause"
         >
-          <svg class="icon"><use href="#icon-minimize" /></svg>
-        </button>
-        <button class="icon-btn" id="close-btn" title="Fechar" aria-label="Fechar">
-          <svg class="icon"><use href="#icon-close" /></svg>
-        </button>
-      </header>
-
-      <section class="controls" id="controls">
-        <button
-          class="controls__btn"
-          id="shuffle-btn"
-          title="Aleatório"
-          aria-label="Aleatório"
-        >
-          <svg class="icon"><use href="#icon-shuffle" /></svg>
-        </button>
-        <button
-          class="controls__btn"
-          id="previous-btn"
-          title="Anterior"
-          aria-label="Anterior"
-        >
-          <svg class="icon icon--lg"><use href="#icon-previous" /></svg>
-        </button>
-        <button class="play-btn" id="play-btn" title="Play/pause" aria-label="Play/pause">
-          <svg class="icon icon--xl play-btn__icon play-btn__icon--play">
+          <svg class="icon icon--lg play-btn__icon play-btn__icon--play">
             <use href="#icon-play" />
           </svg>
-          <svg class="icon icon--xl play-btn__icon play-btn__icon--pause">
+          <svg class="icon icon--lg play-btn__icon play-btn__icon--pause">
             <use href="#icon-pause" />
           </svg>
         </button>
-        <button class="controls__btn" id="next-btn" title="Próxima" aria-label="Próxima">
-          <svg class="icon icon--lg"><use href="#icon-next" /></svg>
-        </button>
-        <button
-          class="controls__btn"
-          id="repeat-btn"
-          title="Repetir"
-          aria-label="Repetir"
-        >
-          <svg class="icon"><use href="#icon-repeat" /></svg>
-        </button>
       </section>
 
-      <section class="info" id="info">
-        <h1 class="info__title" id="title"></h1>
-        <p class="info__artist" id="artist"></p>
-        <p class="info__album" id="album"></p>
-      </section>
+      <!-- ===== Modo expandido: painel completo ===== -->
+      <div class="full">
+        <header class="topbar">
+          <button
+            class="icon-btn"
+            id="collapse-btn"
+            title="Recolher"
+            aria-label="Recolher"
+          >
+            <svg class="icon"><use href="#icon-collapse" /></svg>
+          </button>
+          <span class="topbar__spacer"></span>
+          <button
+            class="icon-btn"
+            id="hide-btn"
+            title="Ocultar na bandeja"
+            aria-label="Ocultar"
+          >
+            <svg class="icon"><use href="#icon-minimize" /></svg>
+          </button>
+          <button class="icon-btn" id="close-btn" title="Fechar" aria-label="Fechar">
+            <svg class="icon"><use href="#icon-close" /></svg>
+          </button>
+        </header>
 
-      <section class="progress">
-        <span class="progress__time" id="time-current">0:00</span>
-        <div class="progress__bar" id="progress-bar">
-          <div class="progress__fill" id="progress-fill"></div>
+        <div class="art">
+          <img class="art__img" id="art" alt="" />
         </div>
-        <span class="progress__time" id="time-total">0:00</span>
-      </section>
 
-      <section class="extras">
-        <svg class="icon extras__volume-icon"><use href="#icon-volume" /></svg>
-        <input
-          class="extras__volume"
-          id="volume"
-          type="range"
-          min="0"
-          max="100"
-          aria-label="Volume"
-        />
-        <button class="extras__btn" id="like-btn" title="Curtir" aria-label="Curtir">
-          <svg class="icon like-btn__icon like-btn__icon--off">
-            <use href="#icon-heart" />
-          </svg>
-          <svg class="icon like-btn__icon like-btn__icon--on">
-            <use href="#icon-heart-filled" />
-          </svg>
-        </button>
-        <button
-          class="extras__btn"
-          id="copy-btn"
-          title="Copiar link"
-          aria-label="Copiar link"
-        >
-          <svg class="icon"><use href="#icon-link" /></svg>
-        </button>
-      </section>
+        <!-- Cartão de vidro com tudo que se usa: texto, progresso, controles, extras. -->
+        <section class="deck glass">
+          <div class="info" id="info">
+            <h1 class="info__title" id="title"></h1>
+            <p class="info__artist" id="artist"></p>
+            <p class="info__album" id="album"></p>
+          </div>
+
+          <div class="progress">
+            <span class="progress__time" id="time-current">0:00</span>
+            <div class="progress__bar" id="progress-bar">
+              <div class="progress__track"><div class="progress__fill"></div></div>
+            </div>
+            <span class="progress__time" id="time-total">0:00</span>
+          </div>
+
+          <div class="controls" id="controls">
+            <button
+              class="controls__btn"
+              id="shuffle-btn"
+              title="Aleatório"
+              aria-label="Aleatório"
+            >
+              <svg class="icon"><use href="#icon-shuffle" /></svg>
+            </button>
+            <button
+              class="controls__btn"
+              id="previous-btn"
+              title="Anterior"
+              aria-label="Anterior"
+            >
+              <svg class="icon icon--lg"><use href="#icon-previous" /></svg>
+            </button>
+            <button
+              class="play-btn"
+              id="play-btn"
+              title="Play/pause"
+              aria-label="Play/pause"
+            >
+              <svg class="icon icon--xl play-btn__icon play-btn__icon--play">
+                <use href="#icon-play" />
+              </svg>
+              <svg class="icon icon--xl play-btn__icon play-btn__icon--pause">
+                <use href="#icon-pause" />
+              </svg>
+            </button>
+            <button
+              class="controls__btn"
+              id="next-btn"
+              title="Próxima"
+              aria-label="Próxima"
+            >
+              <svg class="icon icon--lg"><use href="#icon-next" /></svg>
+            </button>
+            <button
+              class="controls__btn"
+              id="repeat-btn"
+              title="Repetir"
+              aria-label="Repetir"
+            >
+              <svg class="icon"><use href="#icon-repeat" /></svg>
+            </button>
+          </div>
+
+          <div class="extras">
+            <svg class="icon extras__volume-icon"><use href="#icon-volume" /></svg>
+            <input
+              class="extras__volume"
+              id="volume"
+              type="range"
+              min="0"
+              max="100"
+              aria-label="Volume"
+            />
+            <button class="extras__btn" id="like-btn" title="Curtir" aria-label="Curtir">
+              <svg class="icon like-btn__icon like-btn__icon--off">
+                <use href="#icon-heart" />
+              </svg>
+              <svg class="icon like-btn__icon like-btn__icon--on">
+                <use href="#icon-heart-filled" />
+              </svg>
+            </button>
+            <button
+              class="extras__btn"
+              id="copy-btn"
+              title="Copiar link"
+              aria-label="Copiar link"
+            >
+              <svg class="icon"><use href="#icon-link" /></svg>
+            </button>
+          </div>
+        </section>
+      </div>
 
       <!-- Cobre o player quando não há o que mostrar (login, nada tocando...). -->
       <div class="status" id="status" hidden>
