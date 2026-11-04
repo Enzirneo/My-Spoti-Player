@@ -8,7 +8,7 @@ import { restoreBounds, restoreTagBounds } from './window-bounds.js';
 const NORMAL_DEFAULT_SIZE = { width: 320, height: 400 };
 const NORMAL_MIN_SIZE = { width: 260, height: 340 };
 // A janela da tag é um pouco maior que a barra para sobrar espaço para a sombra.
-const TAG_SIZE = { width: 330, height: 76 };
+const TAG_SIZE = { width: 330, height: 84 };
 const TAG_TOP_MARGIN = 6;
 const SAVE_DELAY_MS = 400;
 
