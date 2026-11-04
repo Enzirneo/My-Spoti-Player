@@ -5,10 +5,10 @@
 import { screen } from 'electron';
 import { restoreBounds, restoreTagBounds } from './window-bounds.js';
 
-const NORMAL_DEFAULT_SIZE = { width: 320, height: 320 };
-const NORMAL_MIN_SIZE = { width: 240, height: 260 };
+const NORMAL_DEFAULT_SIZE = { width: 320, height: 400 };
+const NORMAL_MIN_SIZE = { width: 260, height: 340 };
 // A janela da tag é um pouco maior que a barra para sobrar espaço para a sombra.
-const TAG_SIZE = { width: 300, height: 64 };
+const TAG_SIZE = { width: 330, height: 92 };
 const TAG_TOP_MARGIN = 6;
 const SAVE_DELAY_MS = 400;
 
