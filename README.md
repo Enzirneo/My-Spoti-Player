@@ -66,10 +66,11 @@ comentado). O resto do arquivo só usa essas variáveis.
 
 - **Cores:** `--theme-bg` e `--theme-accent` são trocadas pelo app a cada música (a partir da
   capa); o que não vem da capa fica em `--color-*`.
-- **Ondas:** são 5 morros translúcidos, cada um de uma cor da capa. Na barra da janela eles
-  respiram e deslizam de leve; na tag eles nascem na esquerda e cruzam até a direita. Mexa em
-  `--wave-amp*` (altura), `--hill-*` (barra da janela) e `--pulse-*` (tag); as cores e os
-  tempos de cada morro ficam nas regras `.hill:nth-child(n)` e `.pulse:nth-child(n)`.
+- **Ondas:** são 5 morros translúcidos, todos em tons da mesma cor dominante da capa. Cada
+  morro nasce bem pequeno na ponta esquerda, cruza até a direita crescendo e volta a
+  diminuir; na janela eles correm pela parte já tocada da barra, na tag pela faixa de baixo.
+  Mexa em `--wave-amp*` (altura) e `--pulse-*` (largura e transparência); as cores e os
+  tempos de cada morro ficam nas regras `.pulse:nth-child(n)`.
 - **Fundo da janela:** a janela normal usa o fundo acrílico do Windows 11 (borra o que está
   atrás); `--window-opacity` controla quanto da cor da capa cobre esse fundo. A tag é uma
   janela transparente à parte, por isso trocar de modo abre uma janela nova.

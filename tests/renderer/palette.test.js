@@ -45,21 +45,37 @@ describe('pickTheme', () => {
     expect(pickTheme(pixels)).not.toBeNull();
   });
 
-  it('devolve até 3 cores de onda, de matizes diferentes quando a capa tem várias cores', () => {
+  it('usa só a cor dominante: capa com vermelho, azul e verde fica toda vermelha', () => {
     const redBlueGreen = [
       ...solidPixels([220, 40, 40], 8),
       ...solidPixels([40, 60, 220], 6),
       ...solidPixels([40, 200, 60], 4),
     ];
-    const { colors } = pickTheme(redBlueGreen);
-    expect(colors).toHaveLength(3);
-    const hues = colors.map((color) => Number(/^hsl\(([\d.]+),/.exec(color)[1]));
-    expect(new Set(hues).size).toBe(3);
-    expect(hues[0]).toBeLessThan(20); // o vermelho, o mais comum, vem primeiro
+    const theme = pickTheme(redBlueGreen);
+    for (const color of [theme.background, theme.accent, ...theme.colors]) {
+      const hue = Number(/^hsl\(([\d.]+),/.exec(color)[1]);
+      expect(Math.min(hue, 360 - hue)).toBeLessThan(15);
+    }
   });
 
-  it('capa de uma cor só ainda gera 3 cores (variações de claridade)', () => {
-    expect(pickTheme(solidPixels([220, 40, 40])).colors).toHaveLength(3);
+  it('a cor dominante é a que mais aparece, mesmo sendo verde no meio de azul e amarelo', () => {
+    const theme = pickTheme([
+      ...solidPixels([40, 200, 60], 10),
+      ...solidPixels([40, 60, 220], 4),
+      ...solidPixels([230, 210, 40], 4),
+    ]);
+    const hue = Number(/^hsl\(([\d.]+),/.exec(theme.background)[1]);
+    expect(hue).toBeGreaterThan(110);
+    expect(hue).toBeLessThan(140);
+  });
+
+  it('gera 3 cores de onda do mesmo matiz, de claras a mais claras', () => {
+    const { colors } = pickTheme(solidPixels([40, 120, 220]));
+    expect(colors).toHaveLength(3);
+    const hues = colors.map((color) => /^hsl\((\d+),/.exec(color)[1]);
+    expect(new Set(hues).size).toBe(1);
+    const lightness = colors.map(lightnessOf);
+    expect([...lightness].sort((a, b) => a - b)).toEqual(lightness);
   });
 
   it('capa preto e branco gera cores de onda sem matiz', () => {

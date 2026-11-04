@@ -7,12 +7,12 @@ const GRAY_SATURATION = 0.08; // abaixo disso a capa é tratada como preto e bra
 // Pixels coloridos pesam mais na saturação, para uma capa cinza com detalhe azul ficar azulada.
 const BASE_WEIGHT = 0.15;
 
-const BACKGROUND = { maxSaturation: 0.6, lightness: 26 }; // fundo escuro, mas com a cor da capa
-const WAVE_COLOR_COUNT = 3;
-const HUE_BUCKETS = 12; // a capa é dividida em faixas de 30° de matiz
-const MIN_HUE_GAP = 50; // cores de onda escolhidas precisam ser bem diferentes entre si
-const WAVE_LIGHTNESS = [62, 74, 50]; // claridades usadas quando faltam matizes
+const BACKGROUND = { minSaturation: 0.3, maxSaturation: 0.6, lightness: 26 }; // fundo escuro com a cor da capa
 const ACCENT = { minSaturation: 0.35, maxSaturation: 0.75, lightness: 76 }; // onda e barra
+// As 3 cores das ondas são a MESMA cor da capa, só em claridades diferentes.
+const WAVE_LIGHTNESS = [58, 68, 80];
+const WAVE_SATURATION = { min: 0.4, max: 0.85 };
+const HUE_BUCKETS = 12; // a capa é dividida em faixas de 30° de matiz para achar a cor dominante
 
 function rgbToHsl(red, green, blue) {
   const [r, g, b] = [red / 255, green / 255, blue / 255];
@@ -34,47 +34,22 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const hsl = (hue, saturation, lightness) =>
   `hsl(${Math.round(hue)}, ${Math.round(saturation * 100)}%, ${lightness}%)`;
 
-const hueDistance = (a, b) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
-
-/** Escolhe até 3 cores de matizes diferentes (as mais presentes na capa) para as ondas. */
-function pickWaveColors(buckets, fallbackHue, fallbackSaturation) {
-  const ranked = buckets
-    .filter((bucket) => bucket.weight > 0)
-    .sort((first, second) => second.weight - first.weight);
-  const chosen = [];
-  for (const bucket of ranked) {
-    const hue = bucket.sumHue / bucket.weight;
-    if (chosen.every((other) => hueDistance(other.hue, hue) >= MIN_HUE_GAP)) {
-      chosen.push({ hue, saturation: bucket.sumSaturation / bucket.weight });
-    }
-    if (chosen.length === WAVE_COLOR_COUNT) break;
-  }
-  // Faltou matiz (capa de uma cor ou cinza): completa com variações de claridade.
-  while (chosen.length < WAVE_COLOR_COUNT) {
-    chosen.push({ hue: fallbackHue, saturation: fallbackSaturation, lighter: true });
-  }
-  return chosen.map((color, index) =>
-    hsl(
-      color.hue,
-      color.saturation < GRAY_SATURATION ? 0 : clamp(color.saturation, 0.4, 0.85),
-      WAVE_LIGHTNESS[color.lighter ? index : 0] + (color.lighter ? 0 : index * 6)
-    )
-  );
-}
-
-/** Recebe pixels RGBA (como getImageData) e devolve { background, accent } ou null. */
+/**
+ * Recebe pixels RGBA (como getImageData) e devolve { background, accent, colors } ou null.
+ * Tudo sai de UMA cor só: o matiz dominante da capa (o que mais aparece, com cor). As outras
+ * cores da imagem são ignoradas, para o app nunca misturar tons que não combinam.
+ */
 export function pickTheme(pixels) {
-  // O matiz é uma média em círculo (seno/cosseno), senão vermelho (0/360) vira verde, e só conta
-  // quem tem cor: um pixel cinza não tem matiz e não pode puxar a média para o vermelho.
-  let sumSin = 0;
-  let sumCos = 0;
-  let sumSaturation = 0;
-  let totalWeight = 0;
+  // Cada faixa de matiz guarda peso, seno/cosseno (média em círculo: senão vermelho, que fica em
+  // 0°/360°, viraria verde) e saturação. Pixel cinza não tem matiz e não entra nas faixas.
   const buckets = Array.from({ length: HUE_BUCKETS }, () => ({
     weight: 0,
-    sumHue: 0,
-    sumSaturation: 0,
+    sin: 0,
+    cos: 0,
+    saturation: 0,
   }));
+  let totalWeight = 0;
+  let graySaturation = 0; // saturação geral, para decidir se a capa é preto e branco
 
   for (let index = 0; index < pixels.length; index += 4) {
     if (pixels[index + 3] < MIN_ALPHA) continue;
@@ -84,33 +59,53 @@ export function pickTheme(pixels) {
       pixels[index + 2]
     );
     const weight = BASE_WEIGHT + saturation;
-    const radians = (hue * Math.PI) / 180;
-    sumSin += Math.sin(radians) * saturation;
-    sumCos += Math.cos(radians) * saturation;
-    sumSaturation += saturation * weight;
+    graySaturation += saturation * weight;
     totalWeight += weight;
-    if (saturation >= GRAY_SATURATION) {
-      const bucket = buckets[Math.floor(hue / (360 / HUE_BUCKETS)) % HUE_BUCKETS];
-      bucket.weight += saturation;
-      bucket.sumHue += hue * saturation;
-      bucket.sumSaturation += saturation * saturation;
-    }
+    if (saturation < GRAY_SATURATION) continue;
+    const bucket = buckets[Math.floor(hue / (360 / HUE_BUCKETS)) % HUE_BUCKETS];
+    const radians = (hue * Math.PI) / 180;
+    bucket.weight += saturation;
+    bucket.sin += Math.sin(radians) * saturation;
+    bucket.cos += Math.cos(radians) * saturation;
+    bucket.saturation += saturation * saturation;
   }
   if (totalWeight === 0) return null;
 
-  const hue = ((Math.atan2(sumSin, sumCos) * 180) / Math.PI + 360) % 360;
-  const saturation = sumSaturation / totalWeight;
-  if (saturation < GRAY_SATURATION) {
+  if (graySaturation / totalWeight < GRAY_SATURATION) {
     return {
       background: hsl(0, 0, BACKGROUND.lightness),
       accent: hsl(0, 0, ACCENT.lightness),
-      colors: pickWaveColors([], 0, 0),
+      colors: WAVE_LIGHTNESS.map((lightness) => hsl(0, 0, lightness)),
     };
   }
+
+  // Faixa dominante = a de maior peso somado com as vizinhas (um verde que cai na divisa de duas
+  // faixas não pode perder para outra cor só por ter sido partido ao meio).
+  const near = (index) => [
+    buckets[(index + HUE_BUCKETS - 1) % HUE_BUCKETS],
+    buckets[index],
+    buckets[(index + 1) % HUE_BUCKETS],
+  ];
+  let best = 0;
+  let bestScore = -1;
+  for (let index = 0; index < HUE_BUCKETS; index++) {
+    const score = near(index).reduce((sum, bucket) => sum + bucket.weight, 0);
+    if (score > bestScore) {
+      best = index;
+      bestScore = score;
+    }
+  }
+  const group = near(best);
+  const sin = group.reduce((sum, bucket) => sum + bucket.sin, 0);
+  const cos = group.reduce((sum, bucket) => sum + bucket.cos, 0);
+  const weight = group.reduce((sum, bucket) => sum + bucket.weight, 0);
+  const hue = ((Math.atan2(sin, cos) * 180) / Math.PI + 360) % 360;
+  const saturation = group.reduce((sum, bucket) => sum + bucket.saturation, 0) / weight;
+
   return {
     background: hsl(
       hue,
-      Math.min(saturation, BACKGROUND.maxSaturation),
+      clamp(saturation, BACKGROUND.minSaturation, BACKGROUND.maxSaturation),
       BACKGROUND.lightness
     ),
     accent: hsl(
@@ -118,7 +113,9 @@ export function pickTheme(pixels) {
       clamp(saturation, ACCENT.minSaturation, ACCENT.maxSaturation),
       ACCENT.lightness
     ),
-    colors: pickWaveColors(buckets, hue, saturation),
+    colors: WAVE_LIGHTNESS.map((lightness) =>
+      hsl(hue, clamp(saturation, WAVE_SATURATION.min, WAVE_SATURATION.max), lightness)
+    ),
   };
 }
 
