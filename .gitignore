@@ -1,0 +1,8 @@
+node_modules/
+dist/
+out/
+coverage/
+config.json
+.env
+Thumbs.db
+.vscode/
