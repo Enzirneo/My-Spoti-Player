@@ -22,6 +22,12 @@ const $ = (id) => document.getElementById(id);
 export const elements = {
   player: $('player'),
   covers: [$('cover-a'), $('cover-b')],
+  art: $('art'),
+  capsuleCover: $('capsule-cover'),
+  capsuleTitle: $('capsule-title'),
+  capsuleArtist: $('capsule-artist'),
+  capsulePlayButton: $('capsule-play-btn'),
+  collapseButton: $('collapse-btn'),
   info: $('info'),
   title: $('title'),
   artist: $('artist'),
@@ -37,7 +43,6 @@ export const elements = {
   copyButton: $('copy-btn'),
   volume: $('volume'),
   progressBar: $('progress-bar'),
-  progressFill: $('progress-fill'),
   timeCurrent: $('time-current'),
   timeTotal: $('time-total'),
   status: $('status'),
@@ -50,7 +55,7 @@ export const elements = {
 let visibleCoverIndex = -1;
 let toastTimer = null;
 
-/** Mostra a capa nova por cima da antiga (o crossfade é feito pelo CSS). */
+/** Mostra a capa nova: fundo desfocado com crossfade, capa grande e miniatura da cápsula. */
 function showCover(url) {
   const nextIndex = (visibleCoverIndex + 1) % elements.covers.length;
   const nextCover = elements.covers[nextIndex];
@@ -60,28 +65,43 @@ function showCover(url) {
     elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
     nextCover.classList.add('is-visible');
     visibleCoverIndex = nextIndex;
+
+    elements.art.src = url;
+    elements.capsuleCover.src = url;
+    replayAnimation(elements.art);
   };
   preloader.src = url;
 }
 
-function replayChangeAnimation() {
-  elements.info.classList.remove('is-changing');
-  void elements.info.offsetWidth; // força reflow para a animação reiniciar
-  elements.info.classList.add('is-changing');
+function clearCover() {
+  elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
+  elements.art.removeAttribute('src');
+  elements.capsuleCover.removeAttribute('src');
+}
+
+function replayAnimation(element) {
+  element.classList.remove('is-changing');
+  void element.offsetWidth; // força reflow para a animação reiniciar
+  element.classList.add('is-changing');
 }
 
 export function renderTrack(track) {
   elements.title.textContent = track.name;
   elements.artist.textContent = track.artists;
   elements.album.textContent = track.album;
+  elements.capsuleTitle.textContent = track.name;
+  elements.capsuleArtist.textContent = track.artists;
   elements.timeTotal.textContent = msToClock(track.durationMs);
   if (track.coverUrl) showCover(track.coverUrl);
-  replayChangeAnimation();
+  else clearCover();
+  replayAnimation(elements.info);
 }
 
 export function renderControls(state) {
   elements.player.classList.toggle('is-idle', Boolean(state.isIdle));
-  elements.playButton.classList.toggle('is-playing', state.isPlaying);
+  for (const button of [elements.playButton, elements.capsulePlayButton]) {
+    button.classList.toggle('is-playing', state.isPlaying);
+  }
   elements.shuffleButton.classList.toggle('is-active', state.isShuffled);
   elements.repeatButton.dataset.repeat = state.repeatMode;
   elements.volume.disabled = !state.canSetVolume;
@@ -89,14 +109,13 @@ export function renderControls(state) {
 
 export function renderVolume(volume) {
   elements.volume.value = volume;
+  elements.volume.style.setProperty('--value', volume);
 }
 
 export function renderProgress(progressMs, durationMs) {
   elements.timeCurrent.textContent = msToClock(progressMs);
-  elements.progressFill.style.setProperty(
-    '--progress',
-    progressRatio(progressMs, durationMs)
-  );
+  // A variável fica na raiz: a barra do painel e a linha da cápsula leem a mesma.
+  elements.player.style.setProperty('--progress', progressRatio(progressMs, durationMs));
 }
 
 export function renderLiked({ isLiked, isLikeable }) {
@@ -108,7 +127,6 @@ export function renderLiked({ isLiked, isLikeable }) {
 export function renderStatus(kind, { actionLabel } = {}) {
   const message = STATUS_MESSAGES[kind];
   elements.status.hidden = !message;
-  elements.player.classList.toggle('is-disabled', Boolean(message));
   if (!message) return;
 
   elements.statusText.textContent = message;
@@ -130,4 +148,9 @@ export function showToast(text) {
     () => elements.toast.classList.remove('is-visible'),
     TOAST_DURATION_MS
   );
+}
+
+/** Troca entre "capsule" (compacto) e "expanded" (painel); o CSS faz o resto. */
+export function renderMode(mode) {
+  elements.player.dataset.mode = mode;
 }

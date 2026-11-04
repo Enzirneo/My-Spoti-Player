@@ -35,6 +35,7 @@ let isPollingEnabled = false;
 let isPolling = false;
 let isAdjustingVolume = false;
 let isLaunching = false;
+let windowMode = 'capsule';
 let hasTriedLaunch = false; // abre o Spotify sozinho só uma vez por execução
 let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'launch' | 'resume'
 let idleCache = null; // última leitura do dispositivo ocioso: { at, result }
@@ -234,6 +235,7 @@ function seekToClick(event) {
 
 function changeVolume() {
   const percent = Number(elements.volume.value);
+  ui.renderVolume(percent);
   clearTimeout(volumeTimer);
   // Espera o usuário parar de arrastar para não estourar o limite da API.
   volumeTimer = setTimeout(() => {
@@ -306,8 +308,25 @@ async function login() {
   ui.showToast('Login não concluído');
 }
 
+async function changeWindowMode(mode) {
+  windowMode = await api.setWindowMode(mode);
+  ui.renderMode(windowMode);
+}
+
+/** Na cápsula, clicar em qualquer lugar (menos nos botões) abre o painel. */
+function expandOnCapsuleClick(event) {
+  if (windowMode !== 'capsule' || event.target.closest('button')) return;
+  changeWindowMode('expanded');
+}
+
 function bindEvents() {
   elements.playButton.addEventListener('click', togglePlay);
+  elements.capsulePlayButton.addEventListener('click', togglePlay);
+  elements.player.addEventListener('click', expandOnCapsuleClick);
+  elements.collapseButton.addEventListener('click', () => changeWindowMode('capsule'));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && windowMode === 'expanded') changeWindowMode('capsule');
+  });
   elements.shuffleButton.addEventListener('click', toggleShuffle);
   elements.repeatButton.addEventListener('click', cycleRepeat);
   elements.previousButton.addEventListener('click', () =>
@@ -332,6 +351,8 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
+  windowMode = await api.getWindowMode();
+  ui.renderMode(windowMode);
   startProgressLoop({
     getState: () => playback,
     onFrame: (progressMs) => ui.renderProgress(progressMs, playback.track.durationMs),

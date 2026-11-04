@@ -2,48 +2,75 @@
    TODO O VISUAL DO APP FICA AQUI.
    Para trocar o tema, mexa só nas variáveis do bloco :root logo abaixo:
      - Cores .............. --color-*
+     - Vidro (glass) ...... --glass-*   (fosco, brilho, borda, sombra)
+     - Fundo desfocado .... --backdrop-*
      - Cantos/raios ....... --radius-*
-     - Fonte e tamanhos ... --font-*
+     - Fonte e tamanhos ... --font-*, --icon-*, --capsule-*
      - Espaçamentos ....... --space-*
      - Animações .......... --duration-*, --ease-*
    O resto do arquivo só consome essas variáveis.
+
+   O app tem dois modos, escolhidos pelo atributo data-mode do .player:
+     - "capsule"  : barra compacta fixa no topo (capa, linha de progresso, play/pause)
+     - "expanded" : painel completo
    ========================================================================== */
 
 :root {
   /* ---- Cores ---- */
   --color-text: #ffffff;
-  --color-text-muted: rgba(255, 255, 255, 0.7);
-  --color-accent: #1ed760; /* verde do Spotify; usado em ativo/curtido/progresso */
-  --color-surface: rgba(255, 255, 255, 0.16); /* fundo de botões e trilhas */
-  --color-fallback-bg: #121212; /* fundo quando não há capa */
-  --color-overlay-top: rgba(0, 0, 0, 0.35); /* overlay escuro sobre a capa */
-  --color-overlay-middle: rgba(0, 0, 0, 0.5);
-  --color-overlay-bottom: rgba(0, 0, 0, 0.88);
-  --color-banner-bg: rgba(200, 60, 60, 0.9);
+  --color-text-muted: rgba(255, 255, 255, 0.72);
+  --color-text-faint: rgba(255, 255, 255, 0.5);
+  --color-accent: #30d158; /* verde: ativo, curtido, barra ao passar o mouse */
+  --color-fallback-bg: #1c1c22; /* fundo quando não há capa */
+  --color-tint: rgba(10, 10, 16, 0.3); /* escurece o fundo para dar leitura ao texto */
+  --color-banner-bg: rgba(220, 70, 70, 0.85);
+
+  /* ---- Vidro (efeito "glass" estilo iOS) ---- */
+  --glass-bg: rgba(255, 255, 255, 0.14); /* quanto mais alto, mais "leitoso" */
+  --glass-bg-strong: rgba(255, 255, 255, 0.24);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --glass-highlight: rgba(255, 255, 255, 0.55); /* brilho na borda de cima */
+  --glass-blur: 26px; /* desfoque do que está atrás do vidro */
+  --glass-saturate: 180%; /* deixa as cores atrás mais vivas */
+  --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  /* ---- Fundo desfocado feito com a capa ---- */
+  --backdrop-blur: 46px;
+  --backdrop-saturate: 1.7;
+  --backdrop-brightness: 0.7;
 
   /* ---- Raios ---- */
-  --radius-window: 18px; /* cantos da janelinha */
+  --radius-window: 28px; /* painel expandido */
+  --radius-capsule: 999px; /* cápsula (totalmente arredondada) */
+  --radius-card: 22px; /* cartão de vidro */
+  --radius-art: 20px; /* capa grande */
+  --radius-thumb: 14px; /* capa pequena da cápsula */
   --radius-pill: 999px;
 
   /* ---- Fonte e tamanhos ---- */
-  --font-family: 'Segoe UI', system-ui, sans-serif;
-  --font-size-title: 20px;
+  --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-size-title: 19px;
   --font-size-artist: 14px;
   --font-size-small: 12px;
   --icon-size: 20px;
-  --icon-size-lg: 26px;
-  --icon-size-xl: 32px;
-  --play-btn-size: 60px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 30px;
+  --play-btn-size: 58px;
+  --play-btn-compact-size: 40px;
+  --capsule-cover-size: 48px;
   --progress-height: 5px;
 
   /* ---- Espaçamentos ---- */
+  --space-xs: 4px;
   --space-sm: 8px;
-  --space-md: 16px;
+  --space-md: 14px;
+  --window-margin-capsule: 8px; /* sobra da janela da cápsula (espaço da sombra) */
 
   /* ---- Animações ---- */
   --duration-fast: 150ms; /* hover e clique */
   --duration-play-toggle: 280ms; /* troca play/pause */
-  --duration-track-change: 500ms; /* troca de música (capa e texto) */
+  --duration-track-change: 600ms; /* troca de música (capa e texto) */
+  --duration-mode-change: 380ms; /* cápsula <-> painel */
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -84,55 +111,110 @@ button {
   cursor: pointer;
 }
 
-/* ---------- Janela / fundo ---------- */
+.icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.icon--lg {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.icon--xl {
+  width: var(--icon-size-xl);
+  height: var(--icon-size-xl);
+}
+
+/* ---------- Vidro: receita reutilizável ----------
+   Para usar em qualquer bloco, basta adicionar a classe .glass no HTML. */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border: 1px solid var(--glass-border);
+  /* A linha interna clara em cima imita o brilho do vidro. */
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+    var(--glass-shadow);
+}
+
+/* ---------- Janela: o .player é o "vidro" principal ---------- */
 
 .player {
   position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: var(--space-sm) var(--space-md) var(--space-md);
-  background: var(--color-fallback-bg);
-  border-radius: var(--radius-window);
   overflow: hidden;
+  background: var(--color-fallback-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
   /* A janela inteira arrasta; os elementos interativos desativam isso abaixo. */
   -webkit-app-region: drag;
 }
 
-.player__cover {
+.player[data-mode='expanded'] {
+  border-radius: var(--radius-window);
+}
+
+/* Cápsula: fixa (não arrasta, para o clique expandir) e com folga para a sombra. */
+.player[data-mode='capsule'] {
+  height: calc(100% - 2 * var(--window-margin-capsule));
+  margin: var(--window-margin-capsule);
+  border-radius: var(--radius-capsule);
+  flex-direction: row;
+  align-items: center;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+/* Fundo: capa desfocada, ampliada para esconder as bordas do desfoque. */
+.backdrop {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.backdrop__img {
+  position: absolute;
+  inset: -20%;
+  width: 140%;
+  height: 140%;
   object-fit: cover;
   opacity: 0;
-  pointer-events: none;
-  /* ANIMAÇÃO: crossfade da capa. Ajuste a duração em --duration-track-change. */
+  filter: blur(var(--backdrop-blur)) saturate(var(--backdrop-saturate))
+    brightness(var(--backdrop-brightness));
+  /* ANIMAÇÃO: crossfade do fundo na troca de música. */
   transition: opacity var(--duration-track-change) var(--ease-standard);
 }
 
-.player__cover.is-visible {
+.backdrop__img.is-visible {
   opacity: 1;
 }
 
-.player__overlay {
+/* Película por cima: escurece de leve e dá o reflexo claro do vidro. */
+.player__sheen {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    var(--color-overlay-top),
-    var(--color-overlay-middle) 50%,
-    var(--color-overlay-bottom)
-  );
+  background:
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 38%),
+    var(--color-tint);
 }
 
-/* Tudo que não é fundo fica acima das capas/overlay. */
-.topbar,
-.controls,
-.info,
-.progress,
-.extras {
+/* Tudo que não é fundo fica acima do fundo e da película. */
+.capsule,
+.full,
+.status,
+.banner,
+.toast {
   position: relative;
 }
 
@@ -148,34 +230,123 @@ button {
   -webkit-app-region: no-drag;
 }
 
-.icon {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  fill: currentColor;
+/* ---------- Alternância entre os modos ---------- */
+
+.player[data-mode='capsule'] .full {
+  display: none;
 }
 
-.icon--lg {
-  width: var(--icon-size-lg);
-  height: var(--icon-size-lg);
+.player[data-mode='expanded'] .capsule {
+  display: none;
 }
 
-.icon--xl {
-  width: var(--icon-size-xl);
-  height: var(--icon-size-xl);
+/* ANIMAÇÃO: o conteúdo "brota" ao trocar de modo (a janela redimensiona na hora). */
+.player[data-mode='expanded'] .full,
+.player[data-mode='capsule'] .capsule {
+  animation: mode-enter var(--duration-mode-change) var(--ease-standard);
 }
 
-/* ---------- Barra superior ---------- */
+@keyframes mode-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Cápsula ---------- */
+
+.capsule {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0 var(--space-md) 0 var(--space-sm);
+}
+
+.capsule__cover {
+  width: var(--capsule-cover-size);
+  height: var(--capsule-cover-size);
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: var(--radius-thumb);
+  background: var(--glass-bg);
+  box-shadow:
+    0 0 0 1px var(--glass-border),
+    0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.capsule__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.capsule__title,
+.capsule__artist {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.capsule__title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.capsule__artist {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* A linha de progresso da cápsula (preenche com scaleX; o JS só muda --progress). */
+.capsule__progress {
+  height: 3px;
+  margin-top: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+
+.capsule__progress-fill {
+  height: 100%;
+  background: var(--color-text);
+  border-radius: var(--radius-pill);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left;
+}
+
+/* ---------- Painel expandido ---------- */
+
+.full {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+}
 
 .topbar {
   display: flex;
-  justify-content: flex-end;
-  gap: 4px;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.topbar__spacer {
+  flex: 1;
 }
 
 .icon-btn {
   display: grid;
   place-items: center;
-  padding: 4px;
+  padding: 5px;
   border-radius: var(--radius-pill);
   color: var(--color-text-muted);
   transition:
@@ -185,13 +356,152 @@ button {
 
 .icon-btn:hover {
   color: var(--color-text);
-  background: var(--color-surface);
+  background: var(--glass-bg-strong);
 }
 
-/* ---------- Controles (centro) ---------- */
+/* Capa grande: ocupa o espaço que sobrar e se mantém quadrada. */
+.art {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  container-type: size; /* permite medir a capa pelo espaço disponível (cqw/cqh) */
+}
+
+.art__img {
+  /* Quadrada: o maior lado que cabe no espaço livre, sem passar por baixo do cartão. */
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+  object-fit: cover;
+  border-radius: var(--radius-art);
+  background: var(--glass-bg);
+  box-shadow:
+    0 0 0 1px var(--glass-border),
+    0 18px 40px rgba(0, 0, 0, 0.45);
+  -webkit-app-region: no-drag;
+}
+
+/* ANIMAÇÃO: a capa "entra" com um leve zoom quando a música troca. */
+.art__img.is-changing {
+  animation: art-change var(--duration-track-change) var(--ease-standard);
+}
+
+@keyframes art-change {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Cartão de vidro com texto, progresso, controles e extras. */
+.deck {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-card);
+}
+
+/* ---------- Título / artista / álbum ---------- */
+
+.info__title {
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info__artist {
+  font-size: var(--font-size-artist);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info__album {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ANIMAÇÃO: o texto sobe e aparece quando a música troca (classe aplicada pelo JS). */
+.info.is-changing {
+  animation: track-change var(--duration-track-change) var(--ease-standard);
+}
+
+@keyframes track-change {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Barra de progresso ---------- */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.progress__time {
+  min-width: 34px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress__time:last-child {
+  text-align: right;
+}
+
+.progress__bar {
+  flex: 1;
+  /* Área de clique maior que a barra visível */
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.progress__track {
+  height: var(--progress-height);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.progress__bar:hover .progress__track {
+  transform: scaleY(1.5);
+}
+
+/* O preenchimento anima por scaleX (o JS só atualiza --progress, de 0 a 1). */
+.progress__fill {
+  height: 100%;
+  background: var(--color-text);
+  border-radius: var(--radius-pill);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left;
+}
+
+.progress__bar:hover .progress__fill {
+  background: var(--color-accent);
+}
+
+/* ---------- Controles ---------- */
 
 .controls {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,12 +517,14 @@ button {
   color: var(--color-text-muted);
   transition:
     color var(--duration-fast),
+    background var(--duration-fast),
     transform var(--duration-fast) var(--ease-standard);
 }
 
 .controls__btn:hover {
   color: var(--color-text);
-  transform: scale(1.1);
+  background: var(--glass-bg);
+  transform: scale(1.08);
 }
 
 .controls__btn:active {
@@ -239,7 +551,7 @@ button {
 /* ---------- Botão play/pause (exemplo de animação) ----------
    Os dois ícones ficam empilhados. Com .is-playing, o play gira e some
    enquanto o pause cresce. Só usa transform + opacity (leve para a GPU).
-   Para mudar o efeito, edite as regras abaixo ou --duration-play-toggle. */
+   Vale para o botão grande e o da cápsula. */
 
 .play-btn {
   position: relative;
@@ -247,10 +559,25 @@ button {
   place-items: center;
   width: var(--play-btn-size);
   height: var(--play-btn-size);
+  flex-shrink: 0;
   border-radius: var(--radius-pill);
-  background: var(--color-text);
-  color: var(--color-fallback-bg);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1c1c22;
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    0 6px 16px rgba(0, 0, 0, 0.3);
   transition: transform var(--duration-fast) var(--ease-bounce);
+  -webkit-app-region: no-drag;
+}
+
+/* Na cápsula o botão é de vidro (mais discreto). */
+.play-btn--compact {
+  width: var(--play-btn-compact-size);
+  height: var(--play-btn-compact-size);
+  background: var(--glass-bg-strong);
+  color: var(--color-text);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
 
 .play-btn:hover {
@@ -280,105 +607,6 @@ button {
   transform: scale(1) rotate(0deg);
 }
 
-/* ---------- Título / artista / álbum ---------- */
-
-.info {
-  margin-bottom: var(--space-sm);
-}
-
-.info__title {
-  font-size: var(--font-size-title);
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.info__artist {
-  font-size: var(--font-size-artist);
-  color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.info__album {
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ANIMAÇÃO: texto sobe e aparece quando a música troca (classe aplicada pelo JS). */
-.info.is-changing {
-  animation: track-change var(--duration-track-change) var(--ease-standard);
-}
-
-@keyframes track-change {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* ---------- Barra de progresso ---------- */
-
-.progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-
-.progress__time {
-  min-width: 34px;
-  font-size: var(--font-size-small);
-  color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.progress__time:last-child {
-  text-align: right;
-}
-
-.progress__bar {
-  flex: 1;
-  /* Área de clique maior que a barra visível */
-  padding: 8px 0;
-  cursor: pointer;
-  position: relative;
-}
-
-.progress__bar::before {
-  content: '';
-  display: block;
-  height: var(--progress-height);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface);
-}
-
-/* O preenchimento anima por scaleX (o JS só atualiza --progress, de 0 a 1). */
-.progress__fill {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 8px;
-  height: var(--progress-height);
-  border-radius: var(--radius-pill);
-  background: var(--color-text);
-  transform: scaleX(var(--progress, 0));
-  transform-origin: left;
-}
-
-.progress__bar:hover .progress__fill {
-  background: var(--color-accent);
-}
-
 /* ---------- Linha de extras: volume, curtir, copiar ---------- */
 
 .extras {
@@ -389,14 +617,41 @@ button {
 
 .extras__volume-icon {
   color: var(--color-text-muted);
-  flex-shrink: 0;
 }
 
+/* Volume: trilha fina com a parte preenchida (--value, de 0 a 100, vem do JS). */
 .extras__volume {
   flex: 1;
   min-width: 0;
-  accent-color: var(--color-accent);
+  height: 18px;
   cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.extras__volume::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--color-text) calc(var(--value, 0) * 1%),
+    rgba(255, 255, 255, 0.22) calc(var(--value, 0) * 1%)
+  );
+}
+
+.extras__volume::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--color-text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.extras__volume:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
 }
 
 .extras__volume:disabled {
@@ -413,11 +668,13 @@ button {
   color: var(--color-text-muted);
   transition:
     color var(--duration-fast),
+    background var(--duration-fast),
     transform var(--duration-fast) var(--ease-standard);
 }
 
 .extras__btn:hover {
   color: var(--color-text);
+  background: var(--glass-bg);
 }
 
 .extras__btn:active {
@@ -452,15 +709,6 @@ button {
   opacity: 0;
 }
 
-/* ---------- Estado do player sem música ---------- */
-
-.player.is-disabled .controls,
-.player.is-disabled .progress,
-.player.is-disabled .extras {
-  opacity: 0.35;
-  pointer-events: none;
-}
-
 /* Spotify aberto sem sessão: só o play funciona até a música começar. */
 .player.is-idle #shuffle-btn,
 .player.is-idle #previous-btn,
@@ -486,7 +734,8 @@ button {
   gap: var(--space-md);
   padding: var(--space-md);
   text-align: center;
-  background: var(--color-fallback-bg);
+  background: rgba(20, 20, 26, 0.55);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .status__text {
@@ -499,34 +748,55 @@ button {
 .status__action {
   padding: 10px 24px;
   border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: #000;
+  background: var(--color-text);
+  color: #1c1c22;
   font-weight: 700;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-.banner {
+/* Na cápsula a mensagem vira uma linha só, com o botão ao lado. */
+.player[data-mode='capsule'] .status {
+  flex-direction: row;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  border-radius: var(--radius-capsule);
+}
+
+.player[data-mode='capsule'] .status__text {
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player[data-mode='capsule'] .status__action {
+  padding: 6px 14px;
+  font-size: var(--font-size-small);
+  flex-shrink: 0;
+}
+
+.banner,
+.toast {
   position: absolute;
-  top: var(--space-sm);
   left: 50%;
   z-index: 3;
-  transform: translateX(-50%);
-  padding: 4px 12px;
+  padding: 5px 14px;
   border-radius: var(--radius-pill);
-  background: var(--color-banner-bg);
   font-size: var(--font-size-small);
   white-space: nowrap;
 }
 
+.banner {
+  top: var(--space-sm);
+  transform: translateX(-50%);
+  background: var(--color-banner-bg);
+}
+
 .toast {
-  position: absolute;
-  left: 50%;
   bottom: var(--space-md);
-  z-index: 3;
-  padding: 6px 14px;
-  border-radius: var(--radius-pill);
-  background: var(--color-text);
-  color: var(--color-fallback-bg);
-  font-size: var(--font-size-small);
+  background: rgba(255, 255, 255, 0.92);
+  color: #1c1c22;
   opacity: 0;
   pointer-events: none;
   transform: translate(-50%, 10px);
@@ -538,6 +808,12 @@ button {
 .toast.is-visible {
   opacity: 1;
   transform: translate(-50%, 0);
+}
+
+/* Na cápsula não há espaço para avisos; os erros aparecem ao expandir. */
+.player[data-mode='capsule'] .banner,
+.player[data-mode='capsule'] .toast {
+  display: none;
 }
 
 /* ---------- Acessibilidade: sem animações para quem pede ---------- */
