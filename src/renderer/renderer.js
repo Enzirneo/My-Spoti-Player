@@ -2,7 +2,12 @@
 //   1. atualiza a tela na hora (UI otimista);
 //   2. manda o comando pela ponte `window.api`;
 //   3. agenda um polling curto que corrige a tela se a API discordar.
-import { applyOptimistic, nextRepeatMode, normalizePlayback } from '../shared/state.js';
+import {
+  applyOptimistic,
+  nextRepeatMode,
+  normalizeIdle,
+  normalizePlayback,
+} from '../shared/state.js';
 import { positionFromClick, startProgressLoop } from './progress.js';
 import * as ui from './ui.js';
 
@@ -13,6 +18,8 @@ const POLL_INTERVAL_MS = 1500;
 const POST_COMMAND_POLL_MS = 800; // a API demora um instante para refletir o comando
 const ERROR_BACKOFF_FACTOR = 2;
 const VOLUME_DEBOUNCE_MS = 150;
+const IDLE_REFRESH_MS = 10_000; // quanto tempo reaproveitar a leitura do Spotify ocioso
+const START_GRACE_MS = 5000; // após dar play, ignora respostas "sem dispositivo" atrasadas
 
 const ERROR_MESSAGES = {
   'rate-limited': 'Muitas requisições, aguardando…',
@@ -27,9 +34,11 @@ let likedState = { trackId: null, isLiked: false };
 let isPollingEnabled = false;
 let isPolling = false;
 let isAdjustingVolume = false;
-let isWaking = false;
-let hasTriedWake = false; // abre o Spotify sozinho só uma vez por execução
-let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'wake'
+let isLaunching = false;
+let hasTriedLaunch = false; // abre o Spotify sozinho só uma vez por execução
+let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'launch'
+let idleCache = null; // última leitura do Spotify ocioso: { at, result }
+let ignoreNoDeviceUntil = 0;
 let commandVersion = 0; // muda a cada comando; descarta respostas de polling antigas
 let pollTimer = null;
 let volumeTimer = null;
@@ -60,7 +69,10 @@ async function fetchPlayback() {
   if (!result.ok) return handlePollError(result.error);
 
   ui.renderBanner(null);
-  applyPlayback(normalizePlayback(result.data, Date.now()));
+  const next = normalizePlayback(result.data, Date.now());
+  if (next.status === 'no-device') return handleNoDevice();
+  idleCache = null;
+  applyPlayback(next);
   return POLL_INTERVAL_MS;
 }
 
@@ -77,10 +89,6 @@ function handlePollError(error) {
 function applyPlayback(next) {
   const previous = playback;
   playback = next;
-  if (next.status === 'no-device') {
-    showNoDevice();
-    return;
-  }
   if (next.status !== 'ready') {
     ui.renderStatus(next.status);
     return;
@@ -95,30 +103,56 @@ function applyPlayback(next) {
   if (!isAdjustingVolume) ui.renderVolume(next.volume);
 }
 
-function showNoDevice() {
-  if (isWaking) return;
-  if (!hasTriedWake) {
-    hasTriedWake = true;
-    wakeSpotify();
-    return;
-  }
-  statusAction = 'wake';
-  ui.renderStatus('no-device', { actionLabel: 'Abrir Spotify' });
+// ---------- Spotify fechado ou ocioso ----------
+// A API responde "sem dispositivo" tanto com o Spotify fechado quanto aberto sem nada
+// tocando. Para diferenciar (e mostrar a última música), consultamos os dispositivos.
+
+async function loadIdleSession() {
+  if (idleCache && Date.now() - idleCache.at < IDLE_REFRESH_MS) return idleCache.result;
+  const result = await api.getIdleSession();
+  if (result.ok) idleCache = { at: Date.now(), result };
+  return result;
 }
 
-/** Abre o Spotify e transfere a reprodução para ele, sem dar play. */
-async function wakeSpotify() {
-  isWaking = true;
+/** Trata "sem dispositivo". Devolve em quanto tempo consultar de novo. */
+async function handleNoDevice() {
+  // Abrindo o Spotify ou acabamos de dar play: não mexe na tela.
+  if (isLaunching || Date.now() < ignoreNoDeviceUntil) return POLL_INTERVAL_MS;
+
+  const idle = await loadIdleSession();
+  if (!idle.ok) return handlePollError(idle.error);
+  if (!idle.data) return showSpotifyClosed();
+
+  applyPlayback(normalizeIdle(idle.data, Date.now()));
+  return POLL_INTERVAL_MS;
+}
+
+function showSpotifyClosed() {
+  playback = { status: 'no-device' };
+  if (!hasTriedLaunch) {
+    hasTriedLaunch = true;
+    launchSpotifyApp();
+  } else {
+    statusAction = 'launch';
+    ui.renderStatus('no-device', { actionLabel: 'Abrir Spotify' });
+  }
+  return POLL_INTERVAL_MS;
+}
+
+/** Abre o app do Spotify e espera ele aparecer como dispositivo. */
+async function launchSpotifyApp() {
+  isLaunching = true;
   ui.renderStatus('waking');
-  const result = await api.wakeSpotify();
-  isWaking = false;
+  const result = await api.launchSpotify();
+  isLaunching = false;
 
   if (!result.ok && result.error.kind === 'unauthorized') return showLogin();
   if (!result.ok) {
-    statusAction = 'wake';
+    statusAction = 'launch';
     ui.renderStatus('no-device', { actionLabel: 'Abrir Spotify' });
     ui.showToast('Não consegui abrir o Spotify');
   }
+  idleCache = null;
   schedulePoll(0);
 }
 
@@ -140,9 +174,25 @@ async function runCommand({ action, value, send }) {
   const result = await send();
   if (!result.ok) reportCommandError(result.error);
   schedulePoll(POST_COMMAND_POLL_MS);
+  return result;
+}
+
+/** Spotify aberto sem sessão: o play inicia a última música direto no dispositivo. */
+async function startFromIdle() {
+  const { deviceId, track, contextUri } = playback;
+  ignoreNoDeviceUntil = Date.now() + START_GRACE_MS;
+  const result = await runCommand({
+    action: 'togglePlay',
+    send: () => api.playOnDevice(deviceId, track.uri, contextUri),
+  });
+  if (!result.ok) ignoreNoDeviceUntil = 0;
 }
 
 function togglePlay() {
+  if (playback.isIdle) {
+    startFromIdle();
+    return;
+  }
   const shouldPlay = !playback.isPlaying;
   runCommand({
     action: 'togglePlay',
@@ -256,7 +306,7 @@ function bindEvents() {
   elements.closeButton.addEventListener('click', () => api.quitApp());
   elements.hideButton.addEventListener('click', () => api.hideWindow());
   elements.statusAction.addEventListener('click', () =>
-    statusAction === 'wake' ? wakeSpotify() : login()
+    statusAction === 'launch' ? launchSpotifyApp() : login()
   );
   document.addEventListener('visibilitychange', () =>
     document.hidden ? clearTimeout(pollTimer) : poll()
