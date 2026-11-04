@@ -10,8 +10,8 @@ import {
   generateState,
 } from './auth.js';
 import { waitForAuthCode } from './callback-server.js';
-import { describeDevices, describePlayback, describeRecent } from './debug-describe.js';
-import { findIdleSession } from './idle.js';
+import { describeDevices, describePlayback } from './debug-describe.js';
+import { findIdleDevice } from './idle.js';
 import { launchSpotify } from './wake.js';
 
 // Protocolo registrado pelo app do Spotify no Windows.
@@ -21,7 +21,7 @@ const SPOTIFY_APP_URI = 'spotify:';
 const COMMANDS = {
   getPlayback: spotify.getPlayback,
   play: spotify.play,
-  playOnDevice: spotify.playOnDevice,
+  transferPlayback: spotify.transferPlayback,
   pause: spotify.pause,
   next: spotify.nextTrack,
   previous: spotify.previousTrack,
@@ -133,15 +133,7 @@ export function registerIpc({ tokens, clientId, debugLog }) {
 
   ipcMain.handle('spotify:idle', async () => {
     try {
-      const session = await findIdleSession({
-        getDevices: listDevices,
-        getRecentlyPlayed: async () => {
-          const recent = await callOrThrow(spotify.getRecentlyPlayed);
-          debugLog.writeIfChanged('recentes', describeRecent(recent));
-          return recent;
-        },
-      });
-      return { ok: true, data: session };
+      return { ok: true, data: await findIdleDevice({ getDevices: listDevices }) };
     } catch (error) {
       debugLog.write(`[idle] falhou: ${error.kind ?? ''} ${error.message}`);
       return toErrorResult(error);

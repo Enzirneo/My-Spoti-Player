@@ -8,7 +8,6 @@ export const SCOPES = [
   'user-read-currently-playing',
   'user-library-read',
   'user-library-modify',
-  'user-read-recently-played',
 ];
 
 const AUTHORIZE_URL = 'https://accounts.spotify.com/authorize';
