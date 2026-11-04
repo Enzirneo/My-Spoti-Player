@@ -11,10 +11,13 @@ contextBridge.exposeInMainWorld('api', {
   hideWindow: () => ipcRenderer.invoke('window:hide'),
   quitApp: () => ipcRenderer.invoke('window:quit'),
 
-  wakeSpotify: () => ipcRenderer.invoke('spotify:wake'),
+  launchSpotify: () => ipcRenderer.invoke('spotify:launch'),
+  getIdleSession: () => ipcRenderer.invoke('spotify:idle'),
 
   getPlayback: () => call('getPlayback'),
   play: () => call('play'),
+  playOnDevice: (deviceId, trackUri, contextUri) =>
+    call('playOnDevice', { deviceId, trackUri, contextUri }),
   pause: () => call('pause'),
   next: () => call('next'),
   previous: () => call('previous'),

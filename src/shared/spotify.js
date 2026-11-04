@@ -120,11 +120,24 @@ export async function getDevices(options) {
   return (await response.json()).devices ?? [];
 }
 
-/** Move a reprodução para um dispositivo. Com shouldPlay=false não inicia o áudio. */
-export const transferPlayback = ({ deviceId, shouldPlay = false, ...options }) =>
-  request({
+export async function getRecentlyPlayed(options) {
+  const response = await request({
+    ...options,
+    path: '/me/player/recently-played?limit=1',
+  });
+  return (await response.json()).items?.[0] ?? null;
+}
+
+/** Inicia a reprodução num dispositivo (funciona mesmo sem sessão ativa). */
+export function playOnDevice({ deviceId, trackUri, contextUri, ...options }) {
+  // Com contexto (álbum/playlist), continua dali a partir da faixa; senão toca só a faixa.
+  const body = contextUri
+    ? { context_uri: contextUri, offset: { uri: trackUri } }
+    : { uris: [trackUri] };
+  return request({
     ...options,
     method: 'PUT',
-    path: '/me/player',
-    body: { device_ids: [deviceId], play: shouldPlay },
+    path: `/me/player/play?device_id=${deviceId}`,
+    body,
   });
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   normalizePlayback,
+  normalizeIdle,
   applyOptimistic,
   nextRepeatMode,
 } from '../../src/shared/state.js';
@@ -100,5 +101,41 @@ describe('nextRepeatMode', () => {
     expect(nextRepeatMode('off')).toBe('context');
     expect(nextRepeatMode('context')).toBe('track');
     expect(nextRepeatMode('track')).toBe('off');
+  });
+});
+
+describe('normalizeIdle', () => {
+  const device = { id: 'pc', volume_percent: 30, supports_volume: true };
+  const recent = {
+    track: { ...apiTrack, uri: 'spotify:track:t1' },
+    context: { uri: 'spotify:album:a1' },
+  };
+
+  it('monta um estado pausado e ocioso com a última música tocada', () => {
+    const state = normalizeIdle({ device, recent }, 5);
+    expect(state).toMatchObject({
+      status: 'ready',
+      isIdle: true,
+      isPlaying: false,
+      progressMs: 0,
+      deviceId: 'pc',
+      contextUri: 'spotify:album:a1',
+      volume: 30,
+      receivedAt: 5,
+    });
+    expect(state.track.uri).toBe('spotify:track:t1');
+    expect(state.track.name).toBe('Song');
+  });
+
+  it('retorna estado vazio quando o Spotify está aberto mas sem histórico', () => {
+    expect(normalizeIdle({ device, recent: null }, 5).status).toBe('empty');
+  });
+
+  it('tem contexto nulo quando a música veio sem playlist/álbum', () => {
+    const state = normalizeIdle(
+      { device, recent: { track: recent.track, context: null } },
+      5
+    );
+    expect(state.contextUri).toBeNull();
   });
 });
