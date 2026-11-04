@@ -36,7 +36,7 @@
   --color-on-accent: var(--theme-bg); /* ícone sobre o botão de destaque */
 
   /* ---- Raios ---- */
-  --radius-window: 30px; /* janela normal */
+  --radius-window: 0px; /* janela normal: o Windows já arredonda os cantos do fundo acrílico */
   --radius-cover: 26px; /* cartão da capa */
   --radius-tag: 999px; /* tag (pílula) */
   --radius-pill: 999px;
@@ -59,38 +59,33 @@
   --tag-play-size: 34px;
   --tag-icon-size: 26px; /* ícones da tag (sem fundo, só o desenho arredondado) */
   --tag-wave-height: 22px; /* faixa da onda na borda de baixo da tag */
-  --tag-wave-width: 100%; /* largura da faixa da onda (a pílula arredondada corta as pontas) */
+  --tag-wave-width: 62%; /* parte da largura da tag que a onda ocupa (no meio) */
   --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
 
-  /* ---- Onda de progresso ----
-     Várias camadas preenchidas (como montanhas) sobem de uma linha reta e correm em
-     velocidades diferentes; onde se sobrepõem a cor fica mais forte. Cada camada usa um
-     formato (SVG embutido, só o desenho importa) que se repete a cada --wave-tile-*. */
-  --wave-amp: 26px; /* altura máxima das ondas na barra da janela */
-  --wave-amp-tag: 16px; /* altura máxima das ondas na tag */
-  --wave-thickness: 4px; /* grossura da linha */
-  --wave-shape-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20' viewBox='0 0 64 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C10 0 22 0 32 10S54 20 64 12V20Z'/%3E%3C/svg%3E");
-  --wave-shape-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='20' viewBox='0 0 44 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C7 0 15 0 22 10S37 20 44 12V20Z'/%3E%3C/svg%3E");
-  --wave-shape-c: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C14 0 30 0 44 10S76 20 96 12V20Z'/%3E%3C/svg%3E");
-  --wave-tile-a: 38px;
-  --wave-tile-b: 26px;
-  --wave-tile-c: 54px;
+  /* ---- Ondas ----
+     Barra da janela: 5 morros translúcidos, cada um de uma cor da capa, que "respiram"
+     (crescem e baixam) e deslizam de leve para os lados dentro da parte já tocada.
+     Tag: os mesmos morros, mas nascendo na esquerda e cruzando até a direita (.pulse). */
+  --wave-amp: 26px; /* altura máxima dos morros na barra da janela */
+  --wave-thickness: 4px; /* grossura da linha da barra */
+  --hill-width: 62%; /* largura de cada morro (da parte tocada) */
+  --hill-drift: 12%; /* quanto cada morro desliza para os lados */
+  --hill-opacity: 0.85;
+  --wave-amp-tag: 16px; /* altura máxima dos morros na tag */
   /* Morros da tag: largura de cada um e por onde entram (esquerda) e saem (direita). */
   --pulse-width: 50%;
   --pulse-start: -75%;
   --pulse-end: 75%;
   --pulse-opacity: 0.8;
+  /* Formato do morro (um SVG embutido, só o desenho importa). */
   --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
-  --wave-speed-a: 3.2s; /* uma volta da camada (menor = mais rápida) */
-  --wave-speed-b: 2.1s;
-  --wave-speed-c: 4.6s;
 
   /* ---- Espaçamentos ---- */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
   --space-lg: 16px;
-  --window-opacity: 92%; /* fundo da janela normal: menor = mais transparente */
+  --window-opacity: 62%; /* cor da capa sobre o fundo acrílico (borrado) da janela normal: menor = mais borrado */
   --tag-opacity: 94%; /* fundo da tag */
   --window-margin-tag: 8px; /* sobra da janela da tag (espaço da sombra) */
 
@@ -520,50 +515,96 @@ button {
   background: var(--theme-accent);
 }
 
-/* Cada camada é um bloco da cor de destaque recortado no formato da onda (máscara) e
-   deslizando de lado. Só anima tocando; pausado, as ondas ficam paradas. */
-.wave__layer {
-  --tile: var(--wave-tile-a);
-  --shape: var(--wave-shape-a);
-  --speed: var(--wave-speed-a);
-  --scale: 1; /* altura da camada em relação à maior */
-  --direction: normal;
+/* Cada morro é um bloco de cor recortado no formato de sino (máscara). Ele cresce do chão e
+   baixa (breathe) enquanto desliza para um lado e para o outro (drift), cada um no seu ritmo;
+   as cores translúcidas se misturam onde se sobrepõem. Só anima tocando. */
+.hill {
+  --color: var(--theme-accent);
+  --position: 50%; /* onde fica o centro do morro */
+  --peak: 1; /* altura máxima, de 0 a 1 */
+  --breathe: 1.9s; /* tempo para crescer (e o mesmo para baixar) */
+  --drift: 5s; /* tempo para deslizar de um lado ao outro */
+  --delay: 0s;
+  --drift-direction: alternate;
   position: absolute;
   left: 0;
   right: 0;
   bottom: calc(var(--wave-thickness) - 1px);
-  height: calc(var(--wave-height) * var(--scale));
-  background: var(--theme-accent);
-  -webkit-mask: var(--shape) repeat-x 0 100% / var(--tile) 100%;
-  mask: var(--shape) repeat-x 0 100% / var(--tile) 100%;
-  animation: wave-flow var(--speed) linear infinite var(--direction) paused;
+  height: var(--wave-height);
+  background: var(--color);
+  opacity: var(--hill-opacity);
+  -webkit-mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--hill-width) 100%;
+  mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--hill-width) 100%;
+  transform-origin: 50% 100%;
+  scale: 1 0.1;
+  animation:
+    hill-breathe var(--breathe) ease-in-out var(--delay) infinite alternate paused,
+    hill-drift var(--drift) ease-in-out var(--delay) infinite var(--drift-direction)
+      paused;
 }
 
-.wave__layer:nth-child(2) {
-  --tile: var(--wave-tile-b);
-  --shape: var(--wave-shape-b);
-  --speed: var(--wave-speed-b);
-  --scale: 1;
-  --direction: reverse;
-  opacity: 0.65;
-}
-
-.wave__layer:nth-child(3) {
-  --tile: var(--wave-tile-c);
-  --shape: var(--wave-shape-c);
-  --speed: var(--wave-speed-c);
-  --scale: 1;
-  opacity: 0.5;
-}
-
-.player.is-playing .wave__layer {
+.player.is-playing .hill {
   animation-play-state: running;
 }
 
-@keyframes wave-flow {
+.hill:nth-child(1) {
+  --color: var(--theme-wave-1);
+  --position: 50%;
+  --breathe: 1.9s;
+  --drift: 4.9s;
+}
+
+.hill:nth-child(2) {
+  --color: color-mix(in srgb, var(--theme-wave-2) 55%, white);
+  --position: 38%;
+  --peak: 0.7;
+  --breathe: 1.4s;
+  --drift: 3.6s;
+  --drift-direction: alternate-reverse;
+  --delay: -0.7s;
+}
+
+.hill:nth-child(3) {
+  --color: var(--theme-wave-3);
+  --position: 64%;
+  --peak: 0.85;
+  --breathe: 2.3s;
+  --drift: 4.4s;
+  --delay: -1.2s;
+}
+
+.hill:nth-child(4) {
+  --color: color-mix(in srgb, var(--theme-wave-1) 60%, white);
+  --position: 52%;
+  --peak: 0.6;
+  --breathe: 1.2s;
+  --drift: 3.1s;
+  --drift-direction: alternate-reverse;
+  --delay: -0.4s;
+}
+
+.hill:nth-child(5) {
+  --color: var(--theme-wave-2);
+  --position: 58%;
+  --peak: 0.95;
+  --breathe: 2.6s;
+  --drift: 5.7s;
+  --drift-direction: alternate-reverse;
+  --delay: -2s;
+}
+
+@keyframes hill-breathe {
   to {
-    -webkit-mask-position: calc(-1 * var(--tile)) 100%;
-    mask-position: calc(-1 * var(--tile)) 100%;
+    scale: 1 var(--peak);
+  }
+}
+
+@keyframes hill-drift {
+  from {
+    translate: calc(-1 * var(--hill-drift)) 0;
+  }
+  to {
+    translate: var(--hill-drift) 0;
   }
 }
 
@@ -898,6 +939,9 @@ button {
   height: var(--tag-wave-height);
   transform: translateX(-50%);
   overflow: hidden;
+  /* Pontas suaves: o morro que entra ou sai da faixa aparece/some aos poucos, sem corte seco. */
+  -webkit-mask: linear-gradient(to right, transparent, #000 28%, #000 72%, transparent);
+  mask: linear-gradient(to right, transparent, #000 28%, #000 72%, transparent);
   pointer-events: none;
 }
 

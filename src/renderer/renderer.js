@@ -353,6 +353,8 @@ async function init() {
       if (elements.player.dataset.mode === 'tag') changeWindowMode('normal');
     },
   });
+  // O main abre uma janela por modo e diz qual na URL, assim a tela já nasce no modo certo.
+  ui.renderMode(new URLSearchParams(location.search).get('mode') ?? 'normal');
   ui.renderMode(await api.getWindowMode());
   startProgressLoop({
     getState: () => playback,

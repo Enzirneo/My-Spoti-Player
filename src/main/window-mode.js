@@ -26,9 +26,16 @@ export function initialNormalBounds(store) {
 
 export const NORMAL_MIN = NORMAL_MIN_SIZE;
 
-export function createWindowMode({ window, store }) {
+/**
+ * Controla os dois modos. Cada modo é uma janela própria, porque o "normal" usa o fundo
+ * acrílico do Windows (borrado, não pode ser transparente) e a "tag" precisa ser transparente
+ * para ter o formato de pílula. Ao trocar de modo, a janela nova abre e a antiga fecha.
+ * `createWindow(mode, bounds)` é quem monta a BrowserWindow (ver main.js).
+ */
+export function createWindowMode({ store, createWindow }) {
   let mode = 'normal';
   let saveTimer = null;
+  let window = null;
 
   function saveCurrentPosition() {
     if (mode === 'normal') {
@@ -44,48 +51,48 @@ export function createWindowMode({ window, store }) {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(saveCurrentPosition, SAVE_DELAY_MS);
   }
-  window.on('move', scheduleSave);
-  window.on('resize', scheduleSave);
+
+  function open(nextMode, bounds) {
+    const created = createWindow(nextMode, bounds);
+    created.on('move', scheduleSave);
+    created.on('resize', scheduleSave);
+    return created;
+  }
 
   const currentWorkArea = () => screen.getDisplayMatching(window.getBounds()).workArea;
 
-  function showTag() {
-    window.setMinimumSize(0, 0);
-    window.setBounds(
-      restoreTagBounds(
-        store.get('tagPosition'),
-        TAG_SIZE,
-        workAreas(),
-        currentWorkArea(),
-        TAG_TOP_MARGIN
-      )
-    );
-    window.setResizable(false);
-  }
+  const boundsFor = (nextMode) =>
+    nextMode === 'tag'
+      ? restoreTagBounds(
+          store.get('tagPosition'),
+          TAG_SIZE,
+          workAreas(),
+          currentWorkArea(),
+          TAG_TOP_MARGIN
+        )
+      : restoreBounds(
+          store.get('windowBounds'),
+          workAreas(),
+          NORMAL_DEFAULT_SIZE,
+          currentWorkArea()
+        );
 
-  function showNormal() {
-    window.setResizable(true);
-    window.setBounds(
-      restoreBounds(
-        store.get('windowBounds'),
-        workAreas(),
-        NORMAL_DEFAULT_SIZE,
-        currentWorkArea()
-      )
-    );
-    window.setMinimumSize(NORMAL_MIN_SIZE.width, NORMAL_MIN_SIZE.height);
-  }
+  window = open('normal', initialNormalBounds(store));
 
   return {
     getMode: () => mode,
+    getWindow: () => window,
     setMode(nextMode) {
       if (nextMode === mode) return mode;
       // Guarda onde o modo atual estava antes de trocar.
       clearTimeout(saveTimer);
       saveCurrentPosition();
+      const bounds = boundsFor(nextMode);
+      const previous = window;
       mode = nextMode;
-      if (mode === 'tag') showTag();
-      else showNormal();
+      window = open(mode, bounds);
+      // A janela antiga só some quando a nova já está na tela (sem piscar).
+      window.once('show', () => previous.destroy());
       return mode;
     },
   };
