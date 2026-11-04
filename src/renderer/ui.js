@@ -10,7 +10,8 @@ const STATUS_MESSAGES = {
   'login-required': 'Conecte sua conta do Spotify para controlar a reprodução.',
   'logging-in': 'Conclua o login no navegador…',
   loading: 'Carregando…',
-  'no-device': 'Nenhum dispositivo ativo.\nAbra o Spotify e toque alguma coisa.',
+  'no-device': 'O Spotify não está aberto neste computador.',
+  waking: 'Abrindo o Spotify…',
   empty: 'Nada tocando no momento.',
 };
 

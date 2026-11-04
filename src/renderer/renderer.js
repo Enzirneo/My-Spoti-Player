@@ -27,6 +27,9 @@ let likedState = { trackId: null, isLiked: false };
 let isPollingEnabled = false;
 let isPolling = false;
 let isAdjustingVolume = false;
+let isWaking = false;
+let hasTriedWake = false; // abre o Spotify sozinho só uma vez por execução
+let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'wake'
 let commandVersion = 0; // muda a cada comando; descarta respostas de polling antigas
 let pollTimer = null;
 let volumeTimer = null;
@@ -74,6 +77,10 @@ function handlePollError(error) {
 function applyPlayback(next) {
   const previous = playback;
   playback = next;
+  if (next.status === 'no-device') {
+    showNoDevice();
+    return;
+  }
   if (next.status !== 'ready') {
     ui.renderStatus(next.status);
     return;
@@ -86,6 +93,33 @@ function applyPlayback(next) {
   }
   ui.renderControls(next);
   if (!isAdjustingVolume) ui.renderVolume(next.volume);
+}
+
+function showNoDevice() {
+  if (isWaking) return;
+  if (!hasTriedWake) {
+    hasTriedWake = true;
+    wakeSpotify();
+    return;
+  }
+  statusAction = 'wake';
+  ui.renderStatus('no-device', { actionLabel: 'Abrir Spotify' });
+}
+
+/** Abre o Spotify e transfere a reprodução para ele, sem dar play. */
+async function wakeSpotify() {
+  isWaking = true;
+  ui.renderStatus('waking');
+  const result = await api.wakeSpotify();
+  isWaking = false;
+
+  if (!result.ok && result.error.kind === 'unauthorized') return showLogin();
+  if (!result.ok) {
+    statusAction = 'wake';
+    ui.renderStatus('no-device', { actionLabel: 'Abrir Spotify' });
+    ui.showToast('Não consegui abrir o Spotify');
+  }
+  schedulePoll(0);
 }
 
 // ---------- Comandos ----------
@@ -185,6 +219,7 @@ async function copyTrackLink() {
 function showLogin() {
   isPollingEnabled = false;
   clearTimeout(pollTimer);
+  statusAction = 'login';
   ui.renderStatus('login-required', { actionLabel: 'Entrar com Spotify' });
 }
 
@@ -220,7 +255,9 @@ function bindEvents() {
   elements.copyButton.addEventListener('click', copyTrackLink);
   elements.closeButton.addEventListener('click', () => api.quitApp());
   elements.hideButton.addEventListener('click', () => api.hideWindow());
-  elements.statusAction.addEventListener('click', login);
+  elements.statusAction.addEventListener('click', () =>
+    statusAction === 'wake' ? wakeSpotify() : login()
+  );
   document.addEventListener('visibilitychange', () =>
     document.hidden ? clearTimeout(pollTimer) : poll()
   );
