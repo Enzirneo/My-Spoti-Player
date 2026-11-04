@@ -12,6 +12,8 @@ const STATUS_MESSAGES = {
   loading: 'Carregando…',
   'no-device': 'O Spotify não está aberto neste computador.',
   waking: 'Abrindo o Spotify…',
+  idle: 'Spotify aberto, nada tocando.',
+  resuming: 'Retomando a música…',
   empty: 'Nada tocando no momento.',
 };
 
@@ -78,7 +80,6 @@ export function renderTrack(track) {
 }
 
 export function renderControls(state) {
-  elements.player.classList.toggle('is-idle', Boolean(state.isIdle));
   elements.playButton.classList.toggle('is-playing', state.isPlaying);
   elements.shuffleButton.classList.toggle('is-active', state.isShuffled);
   elements.repeatButton.dataset.repeat = state.repeatMode;

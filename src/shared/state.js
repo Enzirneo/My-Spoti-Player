@@ -1,5 +1,6 @@
 // Transforma a resposta crua de GET /me/player no estado que a UI consome.
-// Estado "status": 'ready' | 'empty' (dispositivo ativo, nada tocando) | 'no-device'.
+// Estado "status": 'ready' | 'empty' (sessão sem música) | 'idle' (Spotify aberto sem
+// sessão) | 'no-device' (Spotify fechado).
 
 const REPEAT_CYCLE = ['off', 'context', 'track'];
 
@@ -47,27 +48,9 @@ export function normalizePlayback(apiPlayback, receivedAt) {
   };
 }
 
-/**
- * Spotify aberto mas sem sessão: mostra a última música tocada, pausada.
- * `isIdle` avisa a UI que só o play funciona até a sessão existir.
- */
-export function normalizeIdle({ device, recent }, receivedAt) {
-  if (!recent?.track) return { status: 'empty', receivedAt };
-
-  return {
-    status: 'ready',
-    isIdle: true,
-    receivedAt,
-    isPlaying: false,
-    progressMs: 0,
-    isShuffled: false,
-    repeatMode: 'off',
-    volume: device.volume_percent ?? 0,
-    canSetVolume: false,
-    deviceId: device.id,
-    contextUri: recent.context?.uri ?? null,
-    track: normalizeTrack(recent.track),
-  };
+/** Spotify aberto no computador, mas sem sessão: só dá para pedir que retome. */
+export function normalizeIdle(device, receivedAt) {
+  return { status: 'idle', deviceId: device.id, receivedAt };
 }
 
 /**

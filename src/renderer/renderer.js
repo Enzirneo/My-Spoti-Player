@@ -36,8 +36,8 @@ let isPolling = false;
 let isAdjustingVolume = false;
 let isLaunching = false;
 let hasTriedLaunch = false; // abre o Spotify sozinho só uma vez por execução
-let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'launch'
-let idleCache = null; // última leitura do Spotify ocioso: { at, result }
+let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | 'launch' | 'resume'
+let idleCache = null; // última leitura do dispositivo ocioso: { at, result }
 let ignoreNoDeviceUntil = 0;
 let commandVersion = 0; // muda a cada comando; descarta respostas de polling antigas
 let pollTimer = null;
@@ -109,7 +109,7 @@ function applyPlayback(next) {
 
 async function loadIdleSession() {
   if (idleCache && Date.now() - idleCache.at < IDLE_REFRESH_MS) return idleCache.result;
-  const result = await api.getIdleSession();
+  const result = await api.getIdleDevice();
   if (result.ok) idleCache = { at: Date.now(), result };
   return result;
 }
@@ -123,8 +123,14 @@ async function handleNoDevice() {
   if (!idle.ok) return handlePollError(idle.error);
   if (!idle.data) return showSpotifyClosed();
 
-  applyPlayback(normalizeIdle(idle.data, Date.now()));
+  showIdle(normalizeIdle(idle.data, Date.now()));
   return POLL_INTERVAL_MS;
+}
+
+function showIdle(idleState) {
+  playback = idleState;
+  statusAction = 'resume';
+  ui.renderStatus('idle', { actionLabel: 'Tocar' });
 }
 
 function showSpotifyClosed() {
@@ -177,22 +183,19 @@ async function runCommand({ action, value, send }) {
   return result;
 }
 
-/** Spotify aberto sem sessão: o play inicia a última música direto no dispositivo. */
-async function startFromIdle() {
-  const { deviceId, track, contextUri } = playback;
+/** Spotify aberto sem sessão: pede para ele retomar a sessão que tinha. */
+async function resumeIdleSpotify() {
+  const { deviceId } = playback;
   ignoreNoDeviceUntil = Date.now() + START_GRACE_MS;
-  const result = await runCommand({
-    action: 'togglePlay',
-    send: () => api.playOnDevice(deviceId, track.uri, contextUri),
-  });
-  if (!result.ok) ignoreNoDeviceUntil = 0;
+  ui.renderStatus('resuming');
+  const result = await runCommand({ send: () => api.resumeOnDevice(deviceId) });
+  if (result.ok) return;
+
+  ignoreNoDeviceUntil = 0;
+  showIdle(playback);
 }
 
 function togglePlay() {
-  if (playback.isIdle) {
-    startFromIdle();
-    return;
-  }
   const shouldPlay = !playback.isPlaying;
   runCommand({
     action: 'togglePlay',
@@ -266,6 +269,9 @@ async function copyTrackLink() {
 
 // ---------- Login e inicialização ----------
 
+// O que o botão da tela de status faz, conforme `statusAction`.
+const STATUS_ACTIONS = { login, launch: launchSpotifyApp, resume: resumeIdleSpotify };
+
 function showLogin() {
   isPollingEnabled = false;
   clearTimeout(pollTimer);
@@ -305,9 +311,7 @@ function bindEvents() {
   elements.copyButton.addEventListener('click', copyTrackLink);
   elements.closeButton.addEventListener('click', () => api.quitApp());
   elements.hideButton.addEventListener('click', () => api.hideWindow());
-  elements.statusAction.addEventListener('click', () =>
-    statusAction === 'launch' ? launchSpotifyApp() : login()
-  );
+  elements.statusAction.addEventListener('click', () => STATUS_ACTIONS[statusAction]());
   document.addEventListener('visibilitychange', () =>
     document.hidden ? clearTimeout(pollTimer) : poll()
   );

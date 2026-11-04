@@ -105,37 +105,11 @@ describe('nextRepeatMode', () => {
 });
 
 describe('normalizeIdle', () => {
-  const device = { id: 'pc', volume_percent: 30, supports_volume: true };
-  const recent = {
-    track: { ...apiTrack, uri: 'spotify:track:t1' },
-    context: { uri: 'spotify:album:a1' },
-  };
-
-  it('monta um estado pausado e ocioso com a última música tocada', () => {
-    const state = normalizeIdle({ device, recent }, 5);
-    expect(state).toMatchObject({
-      status: 'ready',
-      isIdle: true,
-      isPlaying: false,
-      progressMs: 0,
+  it('descreve o Spotify aberto sem sessão, guardando o dispositivo', () => {
+    expect(normalizeIdle({ id: 'pc' }, 5)).toEqual({
+      status: 'idle',
       deviceId: 'pc',
-      contextUri: 'spotify:album:a1',
-      volume: 30,
       receivedAt: 5,
     });
-    expect(state.track.uri).toBe('spotify:track:t1');
-    expect(state.track.name).toBe('Song');
-  });
-
-  it('retorna estado vazio quando o Spotify está aberto mas sem histórico', () => {
-    expect(normalizeIdle({ device, recent: null }, 5).status).toBe('empty');
-  });
-
-  it('tem contexto nulo quando a música veio sem playlist/álbum', () => {
-    const state = normalizeIdle(
-      { device, recent: { track: recent.track, context: null } },
-      5
-    );
-    expect(state.contextUri).toBeNull();
   });
 });

@@ -14,8 +14,3 @@ export function describePlayback(playback) {
 export function describeDevices(devices) {
   return devices.length ? devices.map(describeDevice).join(' | ') : 'nenhum dispositivo';
 }
-
-export function describeRecent(recent) {
-  if (!recent) return 'histórico vazio';
-  return `"${recent.track?.name}" tocada em ${recent.played_at}`;
-}
