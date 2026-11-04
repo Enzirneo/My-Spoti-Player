@@ -67,82 +67,113 @@
       </symbol>
     </svg>
 
-    <!-- data-mode: "normal" (janelinha quadrada) ou "tag" (barra mini). -->
+    <!-- data-mode: "normal" (janelinha com cartão da capa) ou "tag" (pílula mini). -->
     <main class="player" id="player" data-mode="normal">
-      <!-- Fundo: a capa. Duas camadas alternam para fazer crossfade. -->
-      <div class="backdrop" aria-hidden="true">
-        <img class="backdrop__img" id="cover-a" alt="" />
-        <img class="backdrop__img" id="cover-b" alt="" />
-      </div>
-      <div class="player__shade" aria-hidden="true"></div>
-
-      <!-- ===== Modo tag: capa, título, linha de progresso e play/pause ===== -->
+      <!-- ===== Modo tag: pílula com capa redonda, título, controles e onda ===== -->
       <section class="tag" id="tag">
         <img class="tag__cover" id="tag-cover" alt="" />
-        <div class="tag__text">
-          <p class="tag__title" id="tag-title"></p>
-          <p class="tag__artist" id="tag-artist"></p>
+        <div class="tag__main">
+          <p class="tag__line">
+            <span class="tag__title" id="tag-title"></span>
+            <span class="tag__artist" id="tag-artist"></span>
+          </p>
+          <div class="tag__controls">
+            <button
+              class="tag__btn"
+              id="tag-previous-btn"
+              title="Anterior"
+              aria-label="Anterior"
+            >
+              <svg class="icon"><use href="#icon-previous" /></svg>
+            </button>
+            <button
+              class="play-btn play-btn--tag"
+              id="tag-play-btn"
+              title="Play/pause"
+              aria-label="Play/pause"
+            >
+              <svg class="icon play-btn__icon play-btn__icon--play">
+                <use href="#icon-play" />
+              </svg>
+              <svg class="icon play-btn__icon play-btn__icon--pause">
+                <use href="#icon-pause" />
+              </svg>
+            </button>
+            <button
+              class="tag__btn"
+              id="tag-next-btn"
+              title="Próxima"
+              aria-label="Próxima"
+            >
+              <svg class="icon"><use href="#icon-next" /></svg>
+            </button>
+          </div>
         </div>
         <button
-          class="play-btn play-btn--tag"
-          id="tag-play-btn"
-          title="Play/pause"
-          aria-label="Play/pause"
-        >
-          <svg class="icon play-btn__icon play-btn__icon--play">
-            <use href="#icon-play" />
-          </svg>
-          <svg class="icon play-btn__icon play-btn__icon--pause">
-            <use href="#icon-pause" />
-          </svg>
-        </button>
-        <button
-          class="icon-btn tag__expand"
+          class="chip-btn tag__expand"
           id="expand-btn"
           title="Voltar para a janela"
           aria-label="Voltar para a janela"
         >
           <svg class="icon icon--sm"><use href="#icon-expand" /></svg>
         </button>
-        <div class="tag__progress"><div class="tag__progress-fill"></div></div>
+        <!-- Onda na borda de baixo: a parte já tocada fica mais clara. -->
+        <div class="tag__wave"><div class="tag__wave-played"></div></div>
       </section>
 
-      <!-- ===== Modo normal: capa em tela cheia + cartão de vidro com os controles ===== -->
+      <!-- ===== Modo normal ===== -->
       <div class="full">
-        <!-- Os botões do topo só aparecem quando o mouse está sobre a janela. -->
-        <header class="topbar">
-          <button
-            class="icon-btn"
-            id="tag-mode-btn"
-            title="Modo mini (tag)"
-            aria-label="Modo mini"
-          >
-            <svg class="icon"><use href="#icon-tag" /></svg>
-          </button>
-          <span class="topbar__spacer"></span>
-          <button
-            class="icon-btn"
-            id="copy-btn"
-            title="Copiar link"
-            aria-label="Copiar link"
-          >
-            <svg class="icon"><use href="#icon-link" /></svg>
-          </button>
-          <button
-            class="icon-btn"
-            id="hide-btn"
-            title="Ocultar na bandeja"
-            aria-label="Ocultar"
-          >
-            <svg class="icon"><use href="#icon-minimize" /></svg>
-          </button>
-          <button class="icon-btn" id="close-btn" title="Fechar" aria-label="Fechar">
-            <svg class="icon"><use href="#icon-close" /></svg>
-          </button>
-        </header>
+        <!-- Cartão grande com a capa; o texto fica por cima, embaixo à esquerda. -->
+        <section class="cover">
+          <div class="cover__images" aria-hidden="true">
+            <img class="cover__img" id="cover-a" alt="" />
+            <img class="cover__img" id="cover-b" alt="" />
+          </div>
+          <div class="cover__shade" aria-hidden="true"></div>
 
-        <section class="deck glass">
-          <div class="deck__head">
+          <!-- Os botões do topo só aparecem com o mouse sobre a janela. -->
+          <header class="topbar">
+            <button
+              class="chip-btn"
+              id="tag-mode-btn"
+              title="Modo mini (tag)"
+              aria-label="Modo mini"
+            >
+              <svg class="icon"><use href="#icon-tag" /></svg>
+            </button>
+            <div class="volume">
+              <svg class="icon icon--sm volume__icon"><use href="#icon-volume" /></svg>
+              <input
+                class="volume__slider"
+                id="volume"
+                type="range"
+                min="0"
+                max="100"
+                aria-label="Volume"
+              />
+            </div>
+            <button
+              class="chip-btn"
+              id="copy-btn"
+              title="Copiar link"
+              aria-label="Copiar link"
+            >
+              <svg class="icon"><use href="#icon-link" /></svg>
+            </button>
+            <button
+              class="chip-btn"
+              id="hide-btn"
+              title="Ocultar na bandeja"
+              aria-label="Ocultar"
+            >
+              <svg class="icon"><use href="#icon-minimize" /></svg>
+            </button>
+            <button class="chip-btn" id="close-btn" title="Fechar" aria-label="Fechar">
+              <svg class="icon"><use href="#icon-close" /></svg>
+            </button>
+          </header>
+
+          <div class="cover__bottom">
             <div class="info" id="info">
               <h1 class="info__title" id="title"></h1>
               <p class="info__sub">
@@ -150,7 +181,12 @@
                 <span class="info__album" id="album"></span>
               </p>
             </div>
-            <button class="extras__btn" id="like-btn" title="Curtir" aria-label="Curtir">
+            <button
+              class="chip-btn like-btn"
+              id="like-btn"
+              title="Curtir"
+              aria-label="Curtir"
+            >
               <svg class="icon like-btn__icon like-btn__icon--off">
                 <use href="#icon-heart" />
               </svg>
@@ -159,78 +195,68 @@
               </svg>
             </button>
           </div>
-
-          <div class="progress">
-            <span class="progress__time" id="time-current">0:00</span>
-            <div class="progress__bar" id="progress-bar">
-              <div class="progress__track"><div class="progress__fill"></div></div>
-            </div>
-            <span class="progress__time" id="time-total">0:00</span>
-          </div>
-
-          <div class="controls" id="controls">
-            <button
-              class="controls__btn"
-              id="shuffle-btn"
-              title="Aleatório"
-              aria-label="Aleatório"
-            >
-              <svg class="icon"><use href="#icon-shuffle" /></svg>
-            </button>
-            <button
-              class="controls__btn"
-              id="previous-btn"
-              title="Anterior"
-              aria-label="Anterior"
-            >
-              <svg class="icon icon--lg"><use href="#icon-previous" /></svg>
-            </button>
-            <button
-              class="play-btn"
-              id="play-btn"
-              title="Play/pause"
-              aria-label="Play/pause"
-            >
-              <svg class="icon icon--xl play-btn__icon play-btn__icon--play">
-                <use href="#icon-play" />
-              </svg>
-              <svg class="icon icon--xl play-btn__icon play-btn__icon--pause">
-                <use href="#icon-pause" />
-              </svg>
-            </button>
-            <button
-              class="controls__btn"
-              id="next-btn"
-              title="Próxima"
-              aria-label="Próxima"
-            >
-              <svg class="icon icon--lg"><use href="#icon-next" /></svg>
-            </button>
-            <button
-              class="controls__btn"
-              id="repeat-btn"
-              title="Repetir"
-              aria-label="Repetir"
-            >
-              <svg class="icon"><use href="#icon-repeat" /></svg>
-            </button>
-          </div>
-
-          <!-- Volume: aparece (desliza para cima) quando o mouse está sobre a janela. -->
-          <div class="extras">
-            <svg class="icon icon--sm extras__volume-icon">
-              <use href="#icon-volume" />
-            </svg>
-            <input
-              class="extras__volume"
-              id="volume"
-              type="range"
-              min="0"
-              max="100"
-              aria-label="Volume"
-            />
-          </div>
         </section>
+
+        <!-- Progresso: a parte tocada vira uma onda; a bolinha arrasta/clica para pular. -->
+        <div class="progress">
+          <div class="progress__bar" id="progress-bar">
+            <div class="wave__rest"></div>
+            <div class="wave__played"></div>
+            <div class="wave__thumb"></div>
+          </div>
+          <div class="progress__times">
+            <span id="time-current">0:00</span>
+            <span id="time-total">0:00</span>
+          </div>
+        </div>
+
+        <div class="controls" id="controls">
+          <button
+            class="controls__plain"
+            id="shuffle-btn"
+            title="Aleatório"
+            aria-label="Aleatório"
+          >
+            <svg class="icon icon--lg"><use href="#icon-shuffle" /></svg>
+          </button>
+          <button
+            class="controls__round"
+            id="previous-btn"
+            title="Anterior"
+            aria-label="Anterior"
+          >
+            <svg class="icon icon--lg"><use href="#icon-previous" /></svg>
+          </button>
+          <button
+            class="controls__round play-btn"
+            id="play-btn"
+            title="Play/pause"
+            aria-label="Play/pause"
+          >
+            <svg class="icon icon--xl play-btn__icon play-btn__icon--play">
+              <use href="#icon-play" />
+            </svg>
+            <svg class="icon icon--xl play-btn__icon play-btn__icon--pause">
+              <use href="#icon-pause" />
+            </svg>
+          </button>
+          <button
+            class="controls__round"
+            id="next-btn"
+            title="Próxima"
+            aria-label="Próxima"
+          >
+            <svg class="icon icon--lg"><use href="#icon-next" /></svg>
+          </button>
+          <button
+            class="controls__plain"
+            id="repeat-btn"
+            title="Repetir"
+            aria-label="Repetir"
+          >
+            <svg class="icon icon--lg"><use href="#icon-repeat" /></svg>
+          </button>
+        </div>
       </div>
 
       <!-- Cobre o player quando não há o que mostrar (login, nada tocando...). -->
