@@ -20,6 +20,10 @@
   /* ---- Cores do tema: o JS troca as duas primeiras conforme a capa ---- */
   --theme-bg: hsl(0, 0%, 17%); /* fundo (escuro, tingido pela capa) */
   --theme-accent: hsl(0, 0%, 76%); /* onda de progresso e destaques */
+  /* Três cores da capa (matizes diferentes) para os morros da onda da tag. */
+  --theme-wave-1: hsl(0, 0%, 62%);
+  --theme-wave-2: hsl(0, 0%, 74%);
+  --theme-wave-3: hsl(0, 0%, 50%);
 
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.7);
@@ -73,7 +77,7 @@
   --wave-tile-c: 54px;
   /* Morros da tag: largura de cada um, deslize para os lados e transparência. */
   --pulse-width: 62%;
-  --pulse-drift-distance: 12%;
+  --pulse-drift-distance: 16%;
   --pulse-opacity: 0.8;
   --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
   --wave-speed-a: 3.2s; /* uma volta da camada (menor = mais rápida) */
@@ -85,6 +89,8 @@
   --space-sm: 8px;
   --space-md: 12px;
   --space-lg: 16px;
+  --window-opacity: 80%; /* fundo da janela normal: menor = mais transparente */
+  --tag-opacity: 94%; /* fundo da tag */
   --window-margin-tag: 8px; /* sobra da janela da tag (espaço da sombra) */
 
   /* ---- Animações ---- */
@@ -171,7 +177,11 @@ button {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background-color: var(--theme-bg);
+  background-color: color-mix(
+    in srgb,
+    var(--theme-bg) var(--window-opacity),
+    transparent
+  );
   border-radius: var(--radius-window);
   /* ANIMAÇÃO: a cor de fundo escorre para a da nova capa. */
   transition: background-color var(--duration-track-change) var(--ease-standard);
@@ -744,6 +754,7 @@ button {
 /* ---------- Modo tag (pílula mini) ---------- */
 
 .player[data-mode='tag'] {
+  background-color: color-mix(in srgb, var(--theme-bg) var(--tag-opacity), transparent);
   height: calc(100% - 2 * var(--window-margin-tag));
   margin: var(--window-margin-tag);
   flex-direction: row;
@@ -895,6 +906,7 @@ button {
   --breathe: 1.9s; /* tempo para crescer (e o mesmo para baixar) */
   --drift: 6s; /* tempo para deslizar de um lado ao outro */
   --delay: 0s;
+  --drift-direction: alternate; /* alternate-reverse faz o morro ir para o outro lado */
   position: absolute;
   inset: 0;
   background: var(--color);
@@ -906,7 +918,8 @@ button {
   scale: 1 0.08;
   animation:
     pulse-breathe var(--breathe) ease-in-out var(--delay) infinite alternate paused,
-    pulse-drift var(--drift) ease-in-out var(--delay) infinite alternate paused;
+    pulse-drift var(--drift) ease-in-out var(--delay) infinite var(--drift-direction)
+      paused;
 }
 
 .player.is-playing .pulse {
@@ -914,45 +927,48 @@ button {
 }
 
 .pulse:nth-child(1) {
-  --color: var(--theme-accent);
+  --color: var(--theme-wave-1);
   --position: 50%;
   --breathe: 1.9s;
-  --drift: 6.5s;
+  --drift: 4.9s;
 }
 
 .pulse:nth-child(2) {
-  --color: color-mix(in srgb, var(--theme-accent) 45%, white);
+  --color: color-mix(in srgb, var(--theme-wave-2) 55%, white);
   --position: 38%;
   --peak: 0.7;
   --breathe: 1.4s;
-  --drift: 5.2s;
+  --drift: 3.6s;
+  --drift-direction: alternate-reverse;
   --delay: -0.7s;
 }
 
 .pulse:nth-child(3) {
-  --color: color-mix(in srgb, var(--theme-accent) 70%, var(--theme-bg));
+  --color: var(--theme-wave-3);
   --position: 64%;
   --peak: 0.85;
   --breathe: 2.3s;
-  --drift: 7.4s;
+  --drift: 4.4s;
   --delay: -1.2s;
 }
 
 .pulse:nth-child(4) {
-  --color: color-mix(in srgb, var(--theme-accent) 70%, white);
+  --color: color-mix(in srgb, var(--theme-wave-1) 60%, white);
   --position: 52%;
   --peak: 0.55;
   --breathe: 1.2s;
-  --drift: 4.6s;
+  --drift: 3.1s;
+  --drift-direction: alternate-reverse;
   --delay: -0.4s;
 }
 
 .pulse:nth-child(5) {
-  --color: color-mix(in srgb, var(--theme-accent) 40%, var(--theme-bg));
+  --color: var(--theme-wave-2);
   --position: 58%;
   --peak: 0.95;
   --breathe: 2.6s;
-  --drift: 8.2s;
+  --drift: 5.7s;
+  --drift-direction: alternate-reverse;
   --delay: -2s;
 }
 

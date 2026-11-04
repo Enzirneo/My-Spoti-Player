@@ -5,6 +5,7 @@ import { loadTheme } from './palette.js';
 import { progressRatio } from './progress.js';
 
 const TOAST_DURATION_MS = 2200;
+const WAVE_COLOR_VARS = 3; // --theme-wave-1..3 (ver palette.js)
 
 const STATUS_MESSAGES = {
   'missing-config': 'Preencha o "clientId" no config.json e reinicie o app.',
@@ -87,10 +88,16 @@ function applyTheme(theme) {
   if (!theme) {
     style.removeProperty('--theme-bg');
     style.removeProperty('--theme-accent');
+    for (let index = 1; index <= WAVE_COLOR_VARS; index++) {
+      style.removeProperty(`--theme-wave-${index}`);
+    }
     return;
   }
   style.setProperty('--theme-bg', theme.background);
   style.setProperty('--theme-accent', theme.accent);
+  theme.colors.forEach((color, index) =>
+    style.setProperty(`--theme-wave-${index + 1}`, color)
+  );
 }
 
 function replayAnimation(element) {
