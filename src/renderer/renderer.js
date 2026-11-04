@@ -339,6 +339,7 @@ function bindEvents() {
   elements.closeButton.addEventListener('click', () => api.quitApp());
   elements.hideButton.addEventListener('click', () => api.hideWindow());
   elements.statusAction.addEventListener('click', () => STATUS_ACTIONS[statusAction]());
+  window.addEventListener('resize', ui.updateTagScroll);
   document.addEventListener('visibilitychange', () =>
     document.hidden ? clearTimeout(pollTimer) : poll()
   );

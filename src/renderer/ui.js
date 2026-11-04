@@ -24,6 +24,7 @@ export const elements = {
   player: $('player'),
   covers: [$('cover-a'), $('cover-b')],
   tagCover: $('tag-cover'),
+  tagLine: document.querySelector('.tag__line'),
   tagTitle: $('tag-title'),
   tagArtist: $('tag-artist'),
   tagPlayButton: $('tag-play-btn'),
@@ -108,6 +109,15 @@ export function renderTrack(track) {
   if (track.coverUrl) showCover(track.coverUrl);
   else clearCover();
   replayAnimation(elements.info);
+  updateTagScroll();
+}
+
+/** Se o texto da tag não cabe, liga a rolagem e diz ao CSS quanto ele precisa andar. */
+export function updateTagScroll() {
+  const { tagLine } = elements;
+  const overflow = tagLine.firstElementChild.offsetWidth - tagLine.clientWidth;
+  tagLine.classList.toggle('is-scrolling', overflow > 0);
+  tagLine.style.setProperty('--scroll-distance', `${Math.max(overflow, 0)}px`);
 }
 
 export function renderControls(state) {
@@ -167,4 +177,5 @@ export function showToast(text) {
 /** Troca entre "normal" (janela) e "tag" (barra mini); o CSS faz o resto. */
 export function renderMode(mode) {
   elements.player.dataset.mode = mode;
+  requestAnimationFrame(updateTagScroll); // só dá para medir com a tag visível
 }

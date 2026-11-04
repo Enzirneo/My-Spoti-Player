@@ -73,8 +73,10 @@
         <img class="tag__cover" id="tag-cover" alt="" />
         <div class="tag__main">
           <p class="tag__line">
-            <span class="tag__title" id="tag-title"></span>
-            <span class="tag__artist" id="tag-artist"></span>
+            <span class="tag__text">
+              <span class="tag__title" id="tag-title"></span>
+              <span class="tag__artist" id="tag-artist"></span>
+            </span>
           </p>
           <div class="tag__controls">
             <button
@@ -108,13 +110,10 @@
             </button>
           </div>
         </div>
-        <!-- Onda na borda de baixo: camadas que sobem da linha, só até o ponto tocado. -->
-        <div class="tag__wave">
-          <div class="wave__line"></div>
-          <div class="wave__played">
-            <i class="wave__layer"></i><i class="wave__layer"></i
-            ><i class="wave__layer"></i>
-          </div>
+        <!-- Onda decorativa na borda de baixo: concentrada no meio, some nas pontas. -->
+        <div class="tag__wave" aria-hidden="true">
+          <i class="wave__layer"></i><i class="wave__layer"></i
+          ><i class="wave__layer"></i>
         </div>
       </section>
 

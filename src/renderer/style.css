@@ -53,14 +53,16 @@
   --btn-chip-size: 30px; /* botões pequenos sobre a capa */
   --tag-cover-size: 38px;
   --tag-play-size: 28px;
-  --tag-wave-height: 14px; /* faixa da onda na borda de baixo da tag */
+  --tag-wave-height: 16px; /* faixa da onda na borda de baixo da tag */
+  --tag-wave-width: 62%; /* parte da largura que a onda ocupa (no meio) */
+  --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
 
   /* ---- Onda de progresso ----
      Várias camadas preenchidas (como montanhas) sobem de uma linha reta e correm em
      velocidades diferentes; onde se sobrepõem a cor fica mais forte. Cada camada usa um
      formato (SVG embutido, só o desenho importa) que se repete a cada --wave-tile-*. */
   --wave-amp: 26px; /* altura máxima das ondas na barra da janela */
-  --wave-amp-tag: 7px; /* altura máxima das ondas na tag */
+  --wave-amp-tag: 16px; /* altura máxima das ondas na tag */
   --wave-thickness: 4px; /* grossura da linha */
   --wave-shape-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20' viewBox='0 0 64 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C10 0 22 0 32 10S54 20 64 12V20Z'/%3E%3C/svg%3E");
   --wave-shape-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='20' viewBox='0 0 44 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C7 0 15 0 22 10S37 20 44 12V20Z'/%3E%3C/svg%3E");
@@ -85,6 +87,7 @@
   --duration-play-toggle: 280ms; /* troca play/pause */
   --duration-track-change: 700ms; /* troca de música (capa, texto e cor) */
   --duration-mode-change: 320ms; /* janela <-> tag */
+  --duration-marquee: 6s; /* texto da tag andando (ida e volta) */
   --duration-wave: 1.1s; /* uma volta da onda (menor = mais rápida) */
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -751,7 +754,7 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: 0 var(--space-md) var(--tag-wave-height) var(--space-md);
+  padding: 0 var(--space-lg);
 }
 
 .tag__cover {
@@ -764,19 +767,46 @@ button {
 }
 
 .tag__main {
+  position: relative; /* fica acima da onda */
+  z-index: 1;
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: var(--space-xs);
 }
 
+/* Título e artista numa linha centralizada; se não couberem, o texto anda de um lado
+   para o outro (classe is-scrolling e --scroll-distance vêm do JS, que mede o texto). */
 .tag__line {
   max-width: 100%;
   font-size: var(--font-size-artist);
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.tag__text {
+  display: inline-block;
+}
+
+.tag__line.is-scrolling {
+  text-overflow: clip;
+}
+
+.tag__line.is-scrolling .tag__text {
+  animation: tag-marquee var(--duration-marquee) ease-in-out infinite alternate;
+}
+
+@keyframes tag-marquee {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(calc(-1 * var(--scroll-distance, 0px)));
+  }
 }
 
 .tag__title {
@@ -794,7 +824,7 @@ button {
 .tag__controls {
   display: flex;
   align-items: center;
-  gap: var(--space-md);
+  gap: var(--tag-controls-gap);
 }
 
 .tag__btn {
@@ -839,17 +869,26 @@ button {
   transform: scale(0.92);
 }
 
-/* Onda na borda de baixo da pílula: as mesmas camadas, em tamanho menor. */
+/* Onda decorativa embaixo da pílula: fica no meio e vai ficando pequena e transparente
+   até sumir nas pontas (o clip-path em meia-elipse baixa as ondas, a máscara apaga). */
 .tag__wave {
   --wave-height: var(--wave-amp-tag);
-  --wave-line-bottom: 3px;
-  --wave-track: rgba(255, 255, 255, 0.18);
   position: absolute;
-  left: 0;
-  right: 0;
   bottom: 0;
+  left: 50%;
+  width: var(--tag-wave-width);
   height: var(--tag-wave-height);
+  transform: translateX(-50%);
   overflow: hidden;
+  clip-path: ellipse(50% 100% at 50% 100%);
+  -webkit-mask: linear-gradient(to right, transparent, #000 30%, #000 70%, transparent);
+  mask: linear-gradient(to right, transparent, #000 30%, #000 70%, transparent);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.tag__wave .wave__layer {
+  bottom: 0;
 }
 
 /* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */
