@@ -1,0 +1,539 @@
+/* ==========================================================================
+   TODO O VISUAL DO APP FICA AQUI.
+   Para trocar o tema, mexa só nas variáveis do bloco :root logo abaixo:
+     - Cores .............. --color-*
+     - Cantos/raios ....... --radius-*
+     - Fonte e tamanhos ... --font-*
+     - Espaçamentos ....... --space-*
+     - Animações .......... --duration-*, --ease-*
+   O resto do arquivo só consome essas variáveis.
+   ========================================================================== */
+
+:root {
+  /* ---- Cores ---- */
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.7);
+  --color-accent: #1ed760; /* verde do Spotify; usado em ativo/curtido/progresso */
+  --color-surface: rgba(255, 255, 255, 0.16); /* fundo de botões e trilhas */
+  --color-fallback-bg: #121212; /* fundo quando não há capa */
+  --color-overlay-top: rgba(0, 0, 0, 0.35); /* overlay escuro sobre a capa */
+  --color-overlay-middle: rgba(0, 0, 0, 0.5);
+  --color-overlay-bottom: rgba(0, 0, 0, 0.88);
+  --color-banner-bg: rgba(200, 60, 60, 0.9);
+
+  /* ---- Raios ---- */
+  --radius-window: 18px; /* cantos da janelinha */
+  --radius-pill: 999px;
+
+  /* ---- Fonte e tamanhos ---- */
+  --font-family: 'Segoe UI', system-ui, sans-serif;
+  --font-size-title: 20px;
+  --font-size-artist: 14px;
+  --font-size-small: 12px;
+  --icon-size: 20px;
+  --icon-size-lg: 26px;
+  --icon-size-xl: 32px;
+  --play-btn-size: 60px;
+  --progress-height: 5px;
+
+  /* ---- Espaçamentos ---- */
+  --space-sm: 8px;
+  --space-md: 16px;
+
+  /* ---- Animações ---- */
+  --duration-fast: 150ms; /* hover e clique */
+  --duration-play-toggle: 280ms; /* troca play/pause */
+  --duration-track-change: 500ms; /* troca de música (capa e texto) */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---------- Base ---------- */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+  background: transparent; /* a janela é transparente; o fundo é o .player */
+  font-family: var(--font-family);
+  color: var(--color-text);
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Sprite de ícones: existe só para ser referenciado com <use>. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+/* ---------- Janela / fundo ---------- */
+
+.player {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  background: var(--color-fallback-bg);
+  border-radius: var(--radius-window);
+  overflow: hidden;
+  /* A janela inteira arrasta; os elementos interativos desativam isso abaixo. */
+  -webkit-app-region: drag;
+}
+
+.player__cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  /* ANIMAÇÃO: crossfade da capa. Ajuste a duração em --duration-track-change. */
+  transition: opacity var(--duration-track-change) var(--ease-standard);
+}
+
+.player__cover.is-visible {
+  opacity: 1;
+}
+
+.player__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--color-overlay-top),
+    var(--color-overlay-middle) 50%,
+    var(--color-overlay-bottom)
+  );
+}
+
+/* Tudo que não é fundo fica acima das capas/overlay. */
+.topbar,
+.controls,
+.info,
+.progress,
+.extras {
+  position: relative;
+}
+
+/* ---------- Elementos interativos (não arrastam a janela) ---------- */
+
+.icon-btn,
+.controls__btn,
+.play-btn,
+.extras__btn,
+.extras__volume,
+.progress__bar,
+.status__action {
+  -webkit-app-region: no-drag;
+}
+
+.icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  fill: currentColor;
+}
+
+.icon--lg {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.icon--xl {
+  width: var(--icon-size-xl);
+  height: var(--icon-size-xl);
+}
+
+/* ---------- Barra superior ---------- */
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  transition:
+    color var(--duration-fast),
+    background var(--duration-fast);
+}
+
+.icon-btn:hover {
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+/* ---------- Controles (centro) ---------- */
+
+.controls {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.controls__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 8px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  transition:
+    color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.controls__btn:hover {
+  color: var(--color-text);
+  transform: scale(1.1);
+}
+
+.controls__btn:active {
+  transform: scale(0.92);
+}
+
+/* Aleatório ligado e repetir em "contexto" ou "faixa" */
+#shuffle-btn.is-active,
+#repeat-btn[data-repeat='context'],
+#repeat-btn[data-repeat='track'] {
+  color: var(--color-accent);
+}
+
+/* Repetir "faixa" mostra um 1 no canto do ícone */
+#repeat-btn[data-repeat='track']::after {
+  content: '1';
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* ---------- Botão play/pause (exemplo de animação) ----------
+   Os dois ícones ficam empilhados. Com .is-playing, o play gira e some
+   enquanto o pause cresce. Só usa transform + opacity (leve para a GPU).
+   Para mudar o efeito, edite as regras abaixo ou --duration-play-toggle. */
+
+.play-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--play-btn-size);
+  height: var(--play-btn-size);
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-fallback-bg);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.play-btn:hover {
+  transform: scale(1.08);
+}
+
+.play-btn:active {
+  transform: scale(0.92);
+}
+
+.play-btn__icon {
+  grid-area: 1 / 1;
+  transition:
+    transform var(--duration-play-toggle) var(--ease-bounce),
+    opacity var(--duration-play-toggle) var(--ease-standard);
+}
+
+.play-btn__icon--pause,
+.play-btn.is-playing .play-btn__icon--play {
+  opacity: 0;
+  transform: scale(0.3) rotate(-90deg);
+}
+
+.play-btn.is-playing .play-btn__icon--pause,
+.play-btn__icon--play {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* ---------- Título / artista / álbum ---------- */
+
+.info {
+  margin-bottom: var(--space-sm);
+}
+
+.info__title {
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info__artist {
+  font-size: var(--font-size-artist);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info__album {
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ANIMAÇÃO: texto sobe e aparece quando a música troca (classe aplicada pelo JS). */
+.info.is-changing {
+  animation: track-change var(--duration-track-change) var(--ease-standard);
+}
+
+@keyframes track-change {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Barra de progresso ---------- */
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.progress__time {
+  min-width: 34px;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress__time:last-child {
+  text-align: right;
+}
+
+.progress__bar {
+  flex: 1;
+  /* Área de clique maior que a barra visível */
+  padding: 8px 0;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress__bar::before {
+  content: '';
+  display: block;
+  height: var(--progress-height);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+}
+
+/* O preenchimento anima por scaleX (o JS só atualiza --progress, de 0 a 1). */
+.progress__fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  height: var(--progress-height);
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left;
+}
+
+.progress__bar:hover .progress__fill {
+  background: var(--color-accent);
+}
+
+/* ---------- Linha de extras: volume, curtir, copiar ---------- */
+
+.extras {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.extras__volume-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.extras__volume {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.extras__volume:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.extras__btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  transition:
+    color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.extras__btn:hover {
+  color: var(--color-text);
+}
+
+.extras__btn:active {
+  transform: scale(0.88);
+}
+
+.extras__btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Coração: o cheio "pula" para dentro quando curtido. */
+.like-btn__icon {
+  grid-area: 1 / 1;
+  transition:
+    transform var(--duration-play-toggle) var(--ease-bounce),
+    opacity var(--duration-fast);
+}
+
+.like-btn__icon--on {
+  opacity: 0;
+  transform: scale(0.3);
+  color: var(--color-accent);
+}
+
+#like-btn.is-liked .like-btn__icon--on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#like-btn.is-liked .like-btn__icon--off {
+  opacity: 0;
+}
+
+/* ---------- Estado do player sem música ---------- */
+
+.player.is-disabled .controls,
+.player.is-disabled .progress,
+.player.is-disabled .extras {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */
+
+.status {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  text-align: center;
+  background: var(--color-fallback-bg);
+}
+
+.status__text {
+  font-size: var(--font-size-artist);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  white-space: pre-line; /* quebras de linha das mensagens */
+}
+
+.status__action {
+  padding: 10px 24px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: #000;
+  font-weight: 700;
+}
+
+.banner {
+  position: absolute;
+  top: var(--space-sm);
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-banner-bg);
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-md);
+  z-index: 3;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-fallback-bg);
+  font-size: var(--font-size-small);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 10px);
+  transition:
+    opacity var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- Acessibilidade: sem animações para quem pede ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
