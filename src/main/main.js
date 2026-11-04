@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } from 'el
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTokenManager } from './auth.js';
+import { createDebugLog } from './debug-log.js';
 import { registerIpc } from './ipc.js';
 import { createStore } from './store.js';
 import { restoreBounds } from './window-bounds.js';
@@ -92,7 +93,10 @@ function start() {
   const clientId = readClientId();
   const tokens = createTokenManager({ store, clientId });
 
-  registerIpc({ tokens, clientId });
+  const debugLog = createDebugLog({
+    filePath: join(app.getPath('userData'), 'debug.log'),
+  });
+  registerIpc({ tokens, clientId, debugLog });
   ipcMain.handle('window:hide', () => mainWindow.hide());
   ipcMain.handle('window:quit', () => app.quit());
   mainWindow = createWindow(store);

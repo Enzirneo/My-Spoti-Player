@@ -10,6 +10,7 @@ import {
   generateState,
 } from './auth.js';
 import { waitForAuthCode } from './callback-server.js';
+import { describeDevices, describePlayback, describeRecent } from './debug-describe.js';
 import { findIdleSession } from './idle.js';
 import { launchSpotify } from './wake.js';
 
@@ -40,7 +41,7 @@ function toErrorResult(error) {
   };
 }
 
-export function registerIpc({ tokens, clientId }) {
+export function registerIpc({ tokens, clientId, debugLog }) {
   async function callWithToken(command, payload, { forceRefresh = false } = {}) {
     const token = await tokens.getAccessToken({ forceRefresh });
     if (!token)
@@ -62,6 +63,28 @@ export function registerIpc({ tokens, clientId }) {
     const result = await callWithToken(command, payload);
     if (result.ok) return result.data;
     throw Object.assign(new Error(result.error.message), result.error);
+  }
+
+  async function listDevices() {
+    const devices = await callOrThrow(spotify.getDevices);
+    debugLog.writeIfChanged('dispositivos', describeDevices(devices));
+    return devices;
+  }
+
+  /** Executa o comando e registra no log o que importa (só mudanças e erros). */
+  async function callAndLog(name, command, payload) {
+    const result = await callWithToken(command, payload);
+    if (!result.ok) {
+      debugLog.writeIfChanged(
+        `erro:${name}`,
+        `${result.error.kind} ${result.error.message}`
+      );
+    } else if (name === 'getPlayback') {
+      debugLog.writeIfChanged('player', describePlayback(result.data));
+    } else {
+      debugLog.write(`[comando] ${name} ok`);
+    }
+    return result;
   }
 
   async function login() {
@@ -94,11 +117,16 @@ export function registerIpc({ tokens, clientId }) {
   ipcMain.handle('spotify:launch', async () => {
     try {
       await launchSpotify({
-        getDevices: () => callOrThrow(spotify.getDevices),
-        launch: () => shell.openExternal(SPOTIFY_APP_URI),
+        getDevices: listDevices,
+        launch: () => {
+          debugLog.write('[launch] abrindo o Spotify pelo protocolo spotify:');
+          return shell.openExternal(SPOTIFY_APP_URI);
+        },
       });
+      debugLog.write('[launch] computador apareceu na lista de dispositivos');
       return { ok: true };
     } catch (error) {
+      debugLog.write(`[launch] falhou: ${error.kind ?? ''} ${error.message}`);
       return toErrorResult(error);
     }
   });
@@ -106,11 +134,16 @@ export function registerIpc({ tokens, clientId }) {
   ipcMain.handle('spotify:idle', async () => {
     try {
       const session = await findIdleSession({
-        getDevices: () => callOrThrow(spotify.getDevices),
-        getRecentlyPlayed: () => callOrThrow(spotify.getRecentlyPlayed),
+        getDevices: listDevices,
+        getRecentlyPlayed: async () => {
+          const recent = await callOrThrow(spotify.getRecentlyPlayed);
+          debugLog.writeIfChanged('recentes', describeRecent(recent));
+          return recent;
+        },
       });
       return { ok: true, data: session };
     } catch (error) {
+      debugLog.write(`[idle] falhou: ${error.kind ?? ''} ${error.message}`);
       return toErrorResult(error);
     }
   });
@@ -119,6 +152,6 @@ export function registerIpc({ tokens, clientId }) {
     const command = COMMANDS[name];
     if (!command)
       return { ok: false, error: { kind: 'http', message: `unknown_command` } };
-    return callWithToken(command, payload);
+    return callAndLog(name, command, payload);
   });
 }
