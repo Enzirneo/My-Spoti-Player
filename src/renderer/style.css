@@ -55,7 +55,7 @@
   --tag-play-size: 34px;
   --tag-icon-size: 26px; /* ícones da tag (sem fundo, só o desenho arredondado) */
   --tag-wave-height: 22px; /* faixa da onda na borda de baixo da tag */
-  --tag-wave-width: 76%; /* parte da largura que a onda ocupa (no meio) */
+  --tag-wave-width: 82%; /* parte da largura que a onda ocupa (no meio) */
   --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
 
   /* ---- Onda de progresso ----
@@ -71,11 +71,10 @@
   --wave-tile-a: 38px;
   --wave-tile-b: 26px;
   --wave-tile-c: 54px;
-  /* Pulsos da tag: largura de cada morrinho, duração padrão e por onde entram/saem. */
-  --pulse-width: 40%;
-  --pulse-duration: 5s;
-  --pulse-start: -67%;
-  --pulse-end: 67%;
+  /* Morros da tag: largura de cada um, deslize para os lados e transparência. */
+  --pulse-width: 62%;
+  --pulse-drift-distance: 12%;
+  --pulse-opacity: 0.8;
   --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
   --wave-speed-a: 3.2s; /* uma volta da camada (menor = mais rápida) */
   --wave-speed-b: 2.1s;
@@ -874,9 +873,10 @@ button {
   transform: scale(0.92);
 }
 
-/* Onda decorativa embaixo da pílula: seis "pulsos" (cada um é um morrinho só) que cruzam a
-   largura, um atrás do outro, em tons e velocidades diferentes. Cada pulso nasce pequeno, cresce
-   no meio do caminho e volta a diminuir; juntos parecem uma onda contínua. */
+/* Onda decorativa embaixo da pílula (igual à do player do celular): cinco morros grandes e
+   translúcidos, cada um de uma cor, parados quase no mesmo lugar. Cada morro "respira" (cresce
+   do chão e volta a baixar) e desliza devagar para os lados, cada um no seu ritmo; onde se
+   sobrepõem as cores se misturam e dão a sensação de onda. */
 .tag__wave {
   position: absolute;
   bottom: 0;
@@ -889,19 +889,24 @@ button {
 }
 
 .pulse {
-  --tone: 100%; /* quanto da cor de destaque (o resto é a cor do fundo) */
+  --color: var(--theme-accent);
+  --position: 50%; /* onde fica o centro do morro */
   --peak: 1; /* altura máxima, de 0 a 1 */
-  --duration: var(--pulse-duration);
+  --breathe: 1.9s; /* tempo para crescer (e o mesmo para baixar) */
+  --drift: 6s; /* tempo para deslizar de um lado ao outro */
   --delay: 0s;
   position: absolute;
   inset: 0;
-  background: color-mix(in srgb, var(--theme-accent) var(--tone), var(--theme-bg));
-  -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
-  mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
+  background: var(--color);
+  opacity: var(--pulse-opacity);
+  -webkit-mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--pulse-width)
+    100%;
+  mask: var(--pulse-shape) no-repeat var(--position) 100% / var(--pulse-width) 100%;
   transform-origin: 50% 100%;
-  opacity: 0;
-  transform: translateX(var(--pulse-start)) scaleY(0.08);
-  animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
+  scale: 1 0.08;
+  animation:
+    pulse-breathe var(--breathe) ease-in-out var(--delay) infinite alternate paused,
+    pulse-drift var(--drift) ease-in-out var(--delay) infinite alternate paused;
 }
 
 .player.is-playing .pulse {
@@ -909,67 +914,60 @@ button {
 }
 
 .pulse:nth-child(1) {
-  --tone: 100%;
-  --peak: 1;
-  --duration: 4.6s;
+  --color: var(--theme-accent);
+  --position: 50%;
+  --breathe: 1.9s;
+  --drift: 6.5s;
 }
 
 .pulse:nth-child(2) {
-  --tone: 82%;
-  --peak: 0.85;
-  --duration: 5.2s;
-  --delay: -0.9s;
+  --color: color-mix(in srgb, var(--theme-accent) 45%, white);
+  --position: 38%;
+  --peak: 0.7;
+  --breathe: 1.4s;
+  --drift: 5.2s;
+  --delay: -0.7s;
 }
 
 .pulse:nth-child(3) {
-  --tone: 66%;
-  --peak: 0.95;
-  --duration: 4.2s;
-  --delay: -1.8s;
+  --color: color-mix(in srgb, var(--theme-accent) 70%, var(--theme-bg));
+  --position: 64%;
+  --peak: 0.85;
+  --breathe: 2.3s;
+  --drift: 7.4s;
+  --delay: -1.2s;
 }
 
 .pulse:nth-child(4) {
-  --tone: 52%;
-  --peak: 0.75;
-  --duration: 5.6s;
-  --delay: -2.7s;
+  --color: color-mix(in srgb, var(--theme-accent) 70%, white);
+  --position: 52%;
+  --peak: 0.55;
+  --breathe: 1.2s;
+  --drift: 4.6s;
+  --delay: -0.4s;
 }
 
 .pulse:nth-child(5) {
-  --tone: 40%;
-  --peak: 0.9;
-  --duration: 4.9s;
-  --delay: -3.6s;
+  --color: color-mix(in srgb, var(--theme-accent) 40%, var(--theme-bg));
+  --position: 58%;
+  --peak: 0.95;
+  --breathe: 2.6s;
+  --drift: 8.2s;
+  --delay: -2s;
 }
 
-.pulse:nth-child(6) {
-  --tone: 30%;
-  --peak: 0.65;
-  --duration: 5.9s;
-  --delay: -4.5s;
+@keyframes pulse-breathe {
+  to {
+    scale: 1 var(--peak);
+  }
 }
 
-/* Anda em velocidade constante; o morrinho só cresce de verdade quando já está bem dentro
-   da faixa, assim ele nunca aparece alto e cortado na borda. */
-@keyframes pulse-cross {
-  15% {
-    opacity: 1;
-  }
-  30% {
-    transform: translateX(calc(var(--pulse-start) * 0.4)) scaleY(0.2);
-  }
-  50% {
-    transform: translateX(0) scaleY(var(--peak));
-  }
-  70% {
-    transform: translateX(calc(var(--pulse-end) * 0.4)) scaleY(0.2);
-  }
-  85% {
-    opacity: 1;
+@keyframes pulse-drift {
+  from {
+    translate: calc(-1 * var(--pulse-drift-distance)) 0;
   }
   to {
-    opacity: 0;
-    transform: translateX(var(--pulse-end)) scaleY(0.08);
+    translate: var(--pulse-drift-distance) 0;
   }
 }
 
