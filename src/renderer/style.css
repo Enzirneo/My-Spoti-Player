@@ -21,12 +21,6 @@
   --theme-bg: hsl(0, 0%, 17%); /* fundo (escuro, tingido pela capa) */
   --theme-accent: hsl(0, 0%, 76%); /* onda de progresso e destaques */
 
-  /* Derivadas do fundo: botões e trilhas ficam sempre na mesma família de cor. */
-  --surface: color-mix(in srgb, var(--theme-bg) 80%, var(--theme-accent));
-  --surface-hover: color-mix(in srgb, var(--theme-bg) 66%, var(--theme-accent));
-  --track: color-mix(in srgb, var(--theme-bg) 62%, var(--theme-accent));
-  --ring: color-mix(in srgb, var(--theme-bg) 75%, black);
-
   --color-text: #ffffff;
   --color-text-muted: rgba(255, 255, 255, 0.7);
   --color-chip: rgba(0, 0, 0, 0.34); /* botões soltos sobre a capa */
@@ -35,12 +29,15 @@
   --color-active: #ffffff; /* aleatório/repetir ligados */
   --color-banner-bg: rgba(220, 70, 70, 0.9);
   --color-on-light: #1c1c22;
+  --color-on-accent: var(--theme-bg); /* ícone sobre o botão de destaque */
 
   /* ---- Raios ---- */
   --radius-window: 30px; /* janela normal */
   --radius-cover: 26px; /* cartão da capa */
   --radius-tag: 999px; /* tag (pílula) */
   --radius-pill: 999px;
+  --radius-play-paused: 50%; /* play/pause: círculo parado... */
+  --radius-play-playing: 38%; /* ...e quadrado arredondado tocando */
 
   /* ---- Fonte e tamanhos ---- */
   --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
@@ -56,18 +53,30 @@
   --btn-chip-size: 30px; /* botões pequenos sobre a capa */
   --tag-cover-size: 44px;
   --tag-play-size: 34px;
+  --tag-wave-height: 18px; /* faixa da onda na borda de baixo da tag */
 
-  /* ---- Onda de progresso ---- */
-  --wave-height: 10px;
-  --wave-length: 24px; /* comprimento de cada ondinha */
-  --wave-thickness: 3px;
-  /* Máscara da onda (um SVG embutido). Para mudar o formato, edite o path. */
-  --wave-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='10' viewBox='0 0 24 10'%3E%3Cpath d='M0 5Q6 0 12 5T24 5' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+  /* ---- Onda de progresso ----
+     Várias camadas preenchidas (como montanhas) sobem de uma linha reta e correm em
+     velocidades diferentes; onde se sobrepõem a cor fica mais forte. Cada camada usa um
+     formato (SVG embutido, só o desenho importa) que se repete a cada --wave-tile-*. */
+  --wave-amp: 26px; /* altura máxima das ondas na barra da janela */
+  --wave-amp-tag: 12px; /* altura máxima das ondas na tag */
+  --wave-thickness: 4px; /* grossura da linha */
+  --wave-shape-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='20' viewBox='0 0 64 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V14C10 0 22 0 32 10S54 18 64 14V20Z'/%3E%3C/svg%3E");
+  --wave-shape-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='20' viewBox='0 0 44 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C7 2 15 2 22 11S37 17 44 12V20Z'/%3E%3C/svg%3E");
+  --wave-shape-c: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='20' viewBox='0 0 96 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20V12C14 1 30 1 44 10S76 18 96 12V20Z'/%3E%3C/svg%3E");
+  --wave-tile-a: 38px;
+  --wave-tile-b: 26px;
+  --wave-tile-c: 54px;
+  --wave-speed-a: 3.2s; /* uma volta da camada (menor = mais rápida) */
+  --wave-speed-b: 2.1s;
+  --wave-speed-c: 4.6s;
 
   /* ---- Espaçamentos ---- */
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 12px;
+  --space-lg: 16px;
   --window-margin-tag: 8px; /* sobra da janela da tag (espaço da sombra) */
 
   /* ---- Animações ---- */
@@ -142,6 +151,12 @@ button {
 /* ---------- Janela ---------- */
 
 .player {
+  /* Derivadas do fundo: ficam aqui (e não no :root) para seguirem o tema da capa. */
+  --surface: color-mix(in srgb, var(--theme-bg) 70%, var(--theme-accent));
+  --surface-hover: color-mix(in srgb, var(--theme-bg) 58%, var(--theme-accent));
+  --track: color-mix(in srgb, var(--theme-bg) 62%, var(--theme-accent));
+  --ring: color-mix(in srgb, var(--theme-bg) 75%, black);
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -185,7 +200,7 @@ button {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  padding: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-lg);
 }
 
 /* Cartão da capa: ocupa o espaço que sobrar. */
@@ -441,66 +456,104 @@ button {
 /* ---------- Barra de progresso em onda ---------- */
 
 .progress {
-  padding: 0 9px; /* folga para a bolinha não sair do cartão nas pontas */
+  padding: 0 var(--space-xs);
 }
 
 .progress__bar {
+  --wave-height: var(--wave-amp);
+  --wave-line-bottom: 6px; /* distância da linha até a base da barra */
+  --wave-track: var(--track);
   position: relative;
-  height: 22px;
+  height: calc(var(--wave-amp) + var(--wave-line-bottom) + var(--wave-thickness));
   cursor: pointer;
 }
 
-/* Trilha reta: só do ponto atual até o fim. */
-.wave__rest {
+/* Linha reta do ponto atual até o fim (a parte tocada tem a própria linha, em destaque). */
+.wave__line {
   position: absolute;
-  top: 50%;
+  bottom: var(--wave-line-bottom);
   left: calc(var(--progress, 0) * 100%);
   right: 0;
-  height: 4px;
-  transform: translateY(-50%);
+  height: var(--wave-thickness);
   border-radius: var(--radius-pill);
-  background: var(--track);
+  background: var(--wave-track);
 }
 
-/* Parte tocada: uma faixa recortada em onda (máscara) que corre da direita para a esquerda
-   enquanto toca. O JS só atualiza --progress, de 0 a 1. */
-.wave__played,
-.tag__wave-played,
-.tag__wave::before {
-  -webkit-mask: var(--wave-mask) repeat-x 0 50% / var(--wave-length) var(--wave-height);
-  mask: var(--wave-mask) repeat-x 0 50% / var(--wave-length) var(--wave-height);
-  animation: wave-flow var(--duration-wave) linear infinite paused;
+/* Parte tocada: linha em destaque + camadas de onda. Só cresce até --progress (0 a 1). */
+.wave__played {
+  position: absolute;
+  bottom: var(--wave-line-bottom);
+  left: 0;
+  width: calc(var(--progress, 0) * 100%);
+  height: calc(var(--wave-height) + var(--wave-thickness));
+  overflow: hidden;
 }
 
-.player.is-playing .wave__played,
-.player.is-playing .tag__wave-played,
-.player.is-playing .tag__wave::before {
+.wave__played::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--wave-thickness);
+  border-radius: var(--radius-pill);
+  background: var(--theme-accent);
+}
+
+/* Cada camada é um bloco da cor de destaque recortado no formato da onda (máscara) e
+   deslizando de lado. Só anima tocando; pausado, as ondas ficam paradas. */
+.wave__layer {
+  --tile: var(--wave-tile-a);
+  --shape: var(--wave-shape-a);
+  --speed: var(--wave-speed-a);
+  --scale: 1; /* altura da camada em relação à maior */
+  --direction: normal;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--wave-thickness) - 1px);
+  height: calc(var(--wave-height) * var(--scale));
+  background: var(--theme-accent);
+  -webkit-mask: var(--shape) repeat-x 0 100% / var(--tile) 100%;
+  mask: var(--shape) repeat-x 0 100% / var(--tile) 100%;
+  animation: wave-flow var(--speed) linear infinite var(--direction) paused;
+}
+
+.wave__layer:nth-child(2) {
+  --tile: var(--wave-tile-b);
+  --shape: var(--wave-shape-b);
+  --speed: var(--wave-speed-b);
+  --scale: 0.7;
+  --direction: reverse;
+  opacity: 0.7;
+}
+
+.wave__layer:nth-child(3) {
+  --tile: var(--wave-tile-c);
+  --shape: var(--wave-shape-c);
+  --speed: var(--wave-speed-c);
+  --scale: 0.85;
+  opacity: 0.5;
+}
+
+.player.is-playing .wave__layer {
   animation-play-state: running;
 }
 
 @keyframes wave-flow {
   to {
-    -webkit-mask-position: calc(-1 * var(--wave-length)) 50%;
-    mask-position: calc(-1 * var(--wave-length)) 50%;
+    -webkit-mask-position: calc(-1 * var(--tile)) 100%;
+    mask-position: calc(-1 * var(--tile)) 100%;
   }
-}
-
-.wave__played {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: calc(var(--progress, 0) * 100%);
-  background: var(--theme-accent);
 }
 
 .wave__thumb {
   position: absolute;
-  top: 50%;
+  bottom: calc(var(--wave-line-bottom) + var(--wave-thickness) / 2);
   left: calc(var(--progress, 0) * 100%);
   width: 20px;
   height: 20px;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, 50%);
   border-radius: 50%;
   background: var(--color-text);
   border: 5px solid var(--ring);
@@ -509,7 +562,7 @@ button {
 }
 
 .progress__bar:hover .wave__thumb {
-  transform: translate(-50%, -50%) scale(1.15);
+  transform: translate(-50%, 50%) scale(1.15);
 }
 
 .progress__times {
@@ -552,7 +605,7 @@ button {
   transform: scale(0.9);
 }
 
-/* Anterior, play/pause e próxima: círculos grandes de cor sólida. */
+/* Anterior e próxima: círculos de cor sólida; o ícone dá um pulinho para o lado ao passar o mouse. */
 .controls__round {
   display: grid;
   place-items: center;
@@ -575,9 +628,38 @@ button {
   transform: scale(0.93);
 }
 
+.controls__round .icon {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+#previous-btn:hover .icon {
+  transform: translateX(-2px);
+}
+
+#next-btn:hover .icon {
+  transform: translateX(2px);
+}
+
+/* Play/pause é o destaque: cor da capa, e vira um quadrado arredondado quando está tocando. */
 .controls__round.play-btn {
   width: var(--btn-play-size);
   height: var(--btn-play-size);
+  background: var(--theme-accent);
+  color: var(--color-on-accent);
+  border-radius: var(--radius-play-paused);
+  transition:
+    border-radius var(--duration-play-toggle) var(--ease-bounce),
+    filter var(--duration-fast),
+    transform var(--duration-fast) var(--ease-bounce);
+}
+
+.controls__round.play-btn:hover {
+  background: var(--theme-accent);
+  filter: brightness(1.08);
+}
+
+.controls__round.play-btn.is-playing {
+  border-radius: var(--radius-play-playing);
 }
 
 /* Aleatório ligado e repetir em "contexto" ou "faixa" */
@@ -669,7 +751,7 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  padding: 0 var(--space-sm) var(--wave-height) var(--space-md);
+  padding: 0 var(--space-md) var(--tag-wave-height) var(--space-md);
 }
 
 .tag__cover {
@@ -737,9 +819,16 @@ button {
   place-items: center;
   width: var(--tag-play-size);
   height: var(--tag-play-size);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  transition: transform var(--duration-fast) var(--ease-bounce);
+  border-radius: var(--radius-play-paused);
+  background: var(--theme-accent);
+  color: var(--color-on-accent);
+  transition:
+    border-radius var(--duration-play-toggle) var(--ease-bounce),
+    transform var(--duration-fast) var(--ease-bounce);
+}
+
+.play-btn--tag.is-playing {
+  border-radius: var(--radius-play-playing);
 }
 
 .play-btn--tag:hover {
@@ -750,39 +839,17 @@ button {
   transform: scale(0.92);
 }
 
-.tag__expand {
-  align-self: flex-start;
-  margin-top: var(--space-sm);
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  color: var(--color-text-muted);
-}
-
-/* Onda na borda de baixo da pílula: base apagada + parte tocada mais clara. */
+/* Onda na borda de baixo da pílula: as mesmas camadas, em tamanho menor. */
 .tag__wave {
+  --wave-height: var(--wave-amp-tag);
+  --wave-line-bottom: 5px;
+  --wave-track: rgba(255, 255, 255, 0.18);
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: var(--wave-height);
+  height: var(--tag-wave-height);
   overflow: hidden;
-}
-
-.tag__wave::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.16);
-}
-
-.tag__wave-played {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: calc(var(--progress, 0) * 100%);
-  background: var(--theme-accent);
 }
 
 /* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */

@@ -322,7 +322,6 @@ function bindEvents() {
     runCommand({ send: () => api.next() })
   );
   elements.tagModeButton.addEventListener('click', () => changeWindowMode('tag'));
-  elements.expandButton.addEventListener('click', () => changeWindowMode('normal'));
   elements.shuffleButton.addEventListener('click', toggleShuffle);
   elements.repeatButton.addEventListener('click', cycleRepeat);
   elements.previousButton.addEventListener('click', () =>
@@ -347,7 +346,12 @@ function bindEvents() {
 
 async function init() {
   bindEvents();
-  enableWindowDrag(elements.player, api);
+  // Na tag, clicar em qualquer área livre (sem arrastar) abre a janela normal.
+  enableWindowDrag(elements.player, api, {
+    onTap: () => {
+      if (elements.player.dataset.mode === 'tag') changeWindowMode('normal');
+    },
+  });
   ui.renderMode(await api.getWindowMode());
   startProgressLoop({
     getState: () => playback,

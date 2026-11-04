@@ -52,9 +52,9 @@ ativo.
   ocultar, fechar).
 - O botão de **modo mini** transforma a janela numa **tag** em pílula (capa redonda, título,
   anterior/play/próxima e a onda de progresso na borda). Ela começa no topo e no centro da
-  tela, mas pode ser arrastada para qualquer lugar (a posição também é lembrada). O botão com
-  setas na tag volta para a janela.
-- O **×** fecha o app e o **–** oculta na bandeja. Pelo ícone da bandeja você mostra/oculta
+  tela, mas pode ser arrastada para qualquer lugar (a posição também é lembrada). Um **clique**
+  em qualquer área livre da tag volta para a janela.
+- O **×** fecha o app e a **seta para baixo** oculta na bandeja. Pelo ícone da bandeja você mostra/oculta
   ou escolhe **Sair** (útil quando só a tag está visível).
 - Clique na barra de progresso para pular para aquele ponto.
 
@@ -66,8 +66,9 @@ comentado). O resto do arquivo só usa essas variáveis.
 
 - **Cores:** `--theme-bg` e `--theme-accent` são trocadas pelo app a cada música (a partir da
   capa); o que não vem da capa fica em `--color-*`.
-- **Onda de progresso:** `--wave-*` (altura, comprimento, espessura) e `--duration-wave`
-  (velocidade).
+- **Onda de progresso:** são três camadas que sobem de uma linha reta e correm em
+  velocidades diferentes. Mexa em `--wave-amp*` (altura), `--wave-tile-*` (largura das
+  ondinhas), `--wave-speed-*` (velocidade) e `--wave-shape-*` (formato).
 - **Animações de exemplo:** play/pause, troca de capa/texto, coração e troca entre janela e tag.
 
 ## Estrutura
