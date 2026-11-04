@@ -6,7 +6,8 @@ import { createTokenManager } from './auth.js';
 import { createDebugLog } from './debug-log.js';
 import { registerIpc } from './ipc.js';
 import { createStore } from './store.js';
-import { createWindowMode, initialCapsuleBounds } from './window-mode.js';
+import { registerWindowDrag } from './window-drag.js';
+import { createWindowMode, initialNormalBounds, NORMAL_MIN } from './window-mode.js';
 
 const APP_ROOT = join(import.meta.dirname, '..', '..');
 
@@ -23,13 +24,15 @@ function readClientId() {
   }
 }
 
-function createWindow() {
+function createWindow(store) {
   const window = new BrowserWindow({
-    ...initialCapsuleBounds(),
+    ...initialNormalBounds(store),
+    minWidth: NORMAL_MIN.width,
+    minHeight: NORMAL_MIN.height,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
-    resizable: false, // só o painel expandido pode ser redimensionado
+    resizable: true,
     skipTaskbar: true,
     show: false,
     webPreferences: {
@@ -77,7 +80,8 @@ function start() {
   registerIpc({ tokens, clientId, debugLog });
   ipcMain.handle('window:hide', () => mainWindow.hide());
   ipcMain.handle('window:quit', () => app.quit());
-  mainWindow = createWindow();
+  mainWindow = createWindow(store);
+  registerWindowDrag(mainWindow);
   const windowMode = createWindowMode({ window: mainWindow, store });
   ipcMain.handle('window:get-mode', () => windowMode.getMode());
   ipcMain.handle('window:set-mode', (_event, mode) => windowMode.setMode(mode));
