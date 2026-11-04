@@ -52,9 +52,10 @@
   --btn-play-size: 60px; /* play/pause */
   --btn-chip-size: 30px; /* botões pequenos sobre a capa */
   --tag-cover-size: 38px;
-  --tag-play-size: 28px;
-  --tag-wave-height: 16px; /* faixa da onda na borda de baixo da tag */
-  --tag-wave-width: 62%; /* parte da largura que a onda ocupa (no meio) */
+  --tag-play-size: 34px;
+  --tag-icon-size: 26px; /* ícones da tag (sem fundo, só o desenho arredondado) */
+  --tag-wave-height: 22px; /* faixa da onda na borda de baixo da tag */
+  --tag-wave-width: 76%; /* parte da largura que a onda ocupa (no meio) */
   --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
 
   /* ---- Onda de progresso ----
@@ -70,6 +71,12 @@
   --wave-tile-a: 38px;
   --wave-tile-b: 26px;
   --wave-tile-c: 54px;
+  /* Pulsos da tag: largura de cada morrinho, duração padrão e por onde entram/saem. */
+  --pulse-width: 40%;
+  --pulse-duration: 5s;
+  --pulse-start: -67%;
+  --pulse-end: 67%;
+  --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
   --wave-speed-a: 3.2s; /* uma volta da camada (menor = mais rápida) */
   --wave-speed-b: 2.1s;
   --wave-speed-c: 4.6s;
@@ -827,11 +834,17 @@ button {
   gap: var(--tag-controls-gap);
 }
 
+.tag__btn .icon,
+.play-btn--tag .icon {
+  width: var(--tag-icon-size);
+  height: var(--tag-icon-size);
+}
+
 .tag__btn {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-pill);
   transition: transform var(--duration-fast) var(--ease-standard);
 }
@@ -849,16 +862,8 @@ button {
   place-items: center;
   width: var(--tag-play-size);
   height: var(--tag-play-size);
-  border-radius: var(--radius-play-paused);
-  background: var(--theme-accent);
-  color: var(--color-on-accent);
-  transition:
-    border-radius var(--duration-play-toggle) var(--ease-bounce),
-    transform var(--duration-fast) var(--ease-bounce);
-}
-
-.play-btn--tag.is-playing {
-  border-radius: var(--radius-play-playing);
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-fast) var(--ease-bounce);
 }
 
 .play-btn--tag:hover {
@@ -869,10 +874,10 @@ button {
   transform: scale(0.92);
 }
 
-/* Onda decorativa embaixo da pílula: fica no meio e vai ficando pequena e transparente
-   até sumir nas pontas (o clip-path em meia-elipse baixa as ondas, a máscara apaga). */
+/* Onda decorativa embaixo da pílula: seis "pulsos" (cada um é um morrinho só) que cruzam a
+   largura, um atrás do outro, em tons e velocidades diferentes. Cada pulso nasce pequeno, cresce
+   no meio do caminho e volta a diminuir; juntos parecem uma onda contínua. */
 .tag__wave {
-  --wave-height: var(--wave-amp-tag);
   position: absolute;
   bottom: 0;
   left: 50%;
@@ -880,15 +885,92 @@ button {
   height: var(--tag-wave-height);
   transform: translateX(-50%);
   overflow: hidden;
-  clip-path: ellipse(50% 100% at 50% 100%);
-  -webkit-mask: linear-gradient(to right, transparent, #000 30%, #000 70%, transparent);
-  mask: linear-gradient(to right, transparent, #000 30%, #000 70%, transparent);
-  opacity: 0.6;
   pointer-events: none;
 }
 
-.tag__wave .wave__layer {
-  bottom: 0;
+.pulse {
+  --tone: 100%; /* quanto da cor de destaque (o resto é a cor do fundo) */
+  --peak: 1; /* altura máxima, de 0 a 1 */
+  --duration: var(--pulse-duration);
+  --delay: 0s;
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--theme-accent) var(--tone), var(--theme-bg));
+  -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
+  mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  transform: translateX(var(--pulse-start)) scaleY(0.08);
+  animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
+}
+
+.player.is-playing .pulse {
+  animation-play-state: running;
+}
+
+.pulse:nth-child(1) {
+  --tone: 100%;
+  --peak: 1;
+  --duration: 4.6s;
+}
+
+.pulse:nth-child(2) {
+  --tone: 82%;
+  --peak: 0.85;
+  --duration: 5.2s;
+  --delay: -0.9s;
+}
+
+.pulse:nth-child(3) {
+  --tone: 66%;
+  --peak: 0.95;
+  --duration: 4.2s;
+  --delay: -1.8s;
+}
+
+.pulse:nth-child(4) {
+  --tone: 52%;
+  --peak: 0.75;
+  --duration: 5.6s;
+  --delay: -2.7s;
+}
+
+.pulse:nth-child(5) {
+  --tone: 40%;
+  --peak: 0.9;
+  --duration: 4.9s;
+  --delay: -3.6s;
+}
+
+.pulse:nth-child(6) {
+  --tone: 30%;
+  --peak: 0.65;
+  --duration: 5.9s;
+  --delay: -4.5s;
+}
+
+/* Anda em velocidade constante; o morrinho só cresce de verdade quando já está bem dentro
+   da faixa, assim ele nunca aparece alto e cortado na borda. */
+@keyframes pulse-cross {
+  15% {
+    opacity: 1;
+  }
+  30% {
+    transform: translateX(calc(var(--pulse-start) * 0.4)) scaleY(0.2);
+  }
+  50% {
+    transform: translateX(0) scaleY(var(--peak));
+  }
+  70% {
+    transform: translateX(calc(var(--pulse-end) * 0.4)) scaleY(0.2);
+  }
+  85% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(var(--pulse-end)) scaleY(0.08);
+  }
 }
 
 /* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */
