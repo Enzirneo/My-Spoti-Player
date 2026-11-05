@@ -854,8 +854,10 @@ button {
   opacity: var(--pulse-opacity);
   -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
   mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
-  height: calc(var(--h) * 0.02);
-  transform: translateX(-50%);
+  height: var(--h);
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) scaleY(0.02);
+  will-change: transform; /* anima só na placa de vídeo: fica fluido */
   animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
 }
 
@@ -866,6 +868,7 @@ button {
 /* Na barra da janela os morros ficam sobre a linha, só na parte já tocada. */
 .wave__played .pulse {
   --wave-cap: var(--wave-cap-ratio); /* ver .wave__played */
+  --pulse-width: 70%; /* mais largos na janela: os morros se sobrepõem e não sobra vão */
   bottom: calc(var(--wave-thickness) - 1px);
 }
 
@@ -904,27 +907,22 @@ button {
 
 /* O centro do morro vai da ponta esquerda (-50%) à direita (+50%). Ele nasce quase sem altura
    na esquerda, é maior no meio e volta a ficar sem altura na direita; assim, mesmo cortado pela
-   borda da pista, o corte não aparece. Sem degradê nenhum. A altura é animada (e não scaleY) para o desenho continuar nítido. */
+   borda da pista, o corte não aparece. Sem degradê nenhum. Só transform é animado (leve para o processador). */
 @keyframes pulse-cross {
   0% {
-    transform: translateX(-50%);
-    height: calc(var(--h) * 0.02);
+    transform: translateX(-50%) scaleY(0.02);
   }
   25% {
-    transform: translateX(-25%);
-    height: calc(var(--h) * var(--peak) * 0.6);
+    transform: translateX(-25%) scaleY(calc(var(--peak) * 0.6));
   }
   50% {
-    transform: translateX(0);
-    height: calc(var(--h) * var(--peak));
+    transform: translateX(0) scaleY(var(--peak));
   }
   75% {
-    transform: translateX(25%);
-    height: calc(var(--h) * var(--peak) * 0.6);
+    transform: translateX(25%) scaleY(calc(var(--peak) * 0.6));
   }
   100% {
-    transform: translateX(50%);
-    height: calc(var(--h) * 0.02);
+    transform: translateX(50%) scaleY(0.02);
   }
 }
 
