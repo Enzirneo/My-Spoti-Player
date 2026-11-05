@@ -105,7 +105,6 @@ function start() {
   app.on('child-process-gone', (_event, details) =>
     debugLog.write(`[processo] ${details.type} caiu (${details.reason})`)
   );
-  ipcMain.handle('window:hide', () => windowMode.getWindow().hide());
   ipcMain.handle('window:quit', () => app.quit());
   registerWindowDrag(() => windowMode.getWindow());
   windowMode = createWindowMode({ store, createWindow });

@@ -49,13 +49,12 @@ ativo.
   cores do fundo e da onda **mudam sozinhas** conforme a capa da música.
 - Arraste por qualquer área livre; redimensione pelas bordas. Posição e tamanho são lembrados.
 - Passe o mouse sobre a janela para ver os botões do topo (modo mini, volume, copiar link,
-  ocultar, fechar).
+  fechar).
 - O botão de **modo mini** transforma a janela numa **tag** em pílula (capa redonda, título,
   anterior/play/próxima e a onda de progresso na borda). Ela começa no topo e no centro da
   tela, mas pode ser arrastada para qualquer lugar (a posição também é lembrada). Um **clique**
   em qualquer área livre da tag volta para a janela.
-- O **×** fecha o app e a **seta para baixo** oculta na bandeja. Pelo ícone da bandeja você mostra/oculta
-  ou escolhe **Sair** (útil quando só a tag está visível).
+- O **×** fecha o app. Pelo ícone da bandeja você mostra/oculta ou escolhe **Sair** (útil quando só a tag está visível).
 - Clique na barra de progresso para pular para aquele ponto.
 
 ## Personalizar o visual
