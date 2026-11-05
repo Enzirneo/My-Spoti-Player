@@ -10,11 +10,19 @@ import {
   generateState,
 } from './auth.js';
 import { waitForAuthCode } from './callback-server.js';
+import { describeDevices, describeIdle, describePlayback } from './debug-describe.js';
+import { createIdleResolver } from './idle.js';
+import { readSpotifyMediaSession } from './media-session.js';
+import { launchSpotify } from './wake.js';
+
+// Protocolo registrado pelo app do Spotify no Windows.
+const SPOTIFY_APP_URI = 'spotify:';
 
 // Nome do comando (usado pelo renderer) -> função da Web API.
 const COMMANDS = {
   getPlayback: spotify.getPlayback,
   play: spotify.play,
+  transferPlayback: spotify.transferPlayback,
   pause: spotify.pause,
   next: spotify.nextTrack,
   previous: spotify.previousTrack,
@@ -34,7 +42,7 @@ function toErrorResult(error) {
   };
 }
 
-export function registerIpc({ tokens, clientId }) {
+export function registerIpc({ tokens, clientId, debugLog }) {
   async function callWithToken(command, payload, { forceRefresh = false } = {}) {
     const token = await tokens.getAccessToken({ forceRefresh });
     if (!token)
@@ -49,6 +57,35 @@ export function registerIpc({ tokens, clientId }) {
       }
       return toErrorResult(error);
     }
+  }
+
+  /** Como callWithToken, mas lança em caso de erro (para uso em fluxos com várias chamadas). */
+  async function callOrThrow(command, payload) {
+    const result = await callWithToken(command, payload);
+    if (result.ok) return result.data;
+    throw Object.assign(new Error(result.error.message), result.error);
+  }
+
+  async function listDevices() {
+    const devices = await callOrThrow(spotify.getDevices);
+    debugLog.writeIfChanged('dispositivos', describeDevices(devices));
+    return devices;
+  }
+
+  /** Executa o comando e registra no log o que importa (só mudanças e erros). */
+  async function callAndLog(name, command, payload) {
+    const result = await callWithToken(command, payload);
+    if (!result.ok) {
+      debugLog.writeIfChanged(
+        `erro:${name}`,
+        `${result.error.kind} ${result.error.message}`
+      );
+    } else if (name === 'getPlayback') {
+      debugLog.writeIfChanged('player', describePlayback(result.data));
+    } else {
+      debugLog.write(`[comando] ${name} ok`);
+    }
+    return result;
   }
 
   async function login() {
@@ -78,10 +115,44 @@ export function registerIpc({ tokens, clientId }) {
 
   ipcMain.handle('auth:logout', () => tokens.clearTokens());
 
+  ipcMain.handle('spotify:launch', async () => {
+    try {
+      await launchSpotify({
+        getDevices: listDevices,
+        launch: () => {
+          debugLog.write('[launch] abrindo o Spotify pelo protocolo spotify:');
+          return shell.openExternal(SPOTIFY_APP_URI);
+        },
+      });
+      debugLog.write('[launch] computador apareceu na lista de dispositivos');
+      return { ok: true };
+    } catch (error) {
+      debugLog.write(`[launch] falhou: ${error.kind ?? ''} ${error.message}`);
+      return toErrorResult(error);
+    }
+  });
+
+  const resolveIdle = createIdleResolver({
+    getDevices: listDevices,
+    readMedia: readSpotifyMediaSession,
+    searchTracks: (query) => callOrThrow(spotify.searchTracks, query),
+  });
+
+  ipcMain.handle('spotify:idle', async () => {
+    try {
+      const idle = await resolveIdle();
+      debugLog.writeIfChanged('ocioso', describeIdle(idle));
+      return { ok: true, data: idle };
+    } catch (error) {
+      debugLog.write(`[idle] falhou: ${error.kind ?? ''} ${error.message}`);
+      return toErrorResult(error);
+    }
+  });
+
   ipcMain.handle('spotify:call', (_event, name, payload = {}) => {
     const command = COMMANDS[name];
     if (!command)
       return { ok: false, error: { kind: 'http', message: `unknown_command` } };
-    return callWithToken(command, payload);
+    return callAndLog(name, command, payload);
   });
 }

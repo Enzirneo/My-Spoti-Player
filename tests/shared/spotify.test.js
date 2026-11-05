@@ -9,6 +9,9 @@ import {
   play,
   isTrackLiked,
   setTrackLiked,
+  getDevices,
+  transferPlayback,
+  searchTracks,
 } from '../../src/shared/spotify.js';
 
 const BASE = 'https://api.spotify.com/v1';
@@ -83,21 +86,25 @@ describe('getPlayback', () => {
 });
 
 describe('curtidas', () => {
-  it('isTrackLiked lê o primeiro item de /me/tracks/contains', async () => {
+  it('isTrackLiked lê o primeiro item de /me/library/contains', async () => {
     const fetchMock = vi.fn().mockResolvedValue(response(200, { body: [true] }));
-    expect(await isTrackLiked({ token: 't', fetch: fetchMock, trackId: 'x1' })).toBe(
-      true
+    const trackUri = 'spotify:track:x1';
+    expect(await isTrackLiked({ token: 't', fetch: fetchMock, trackUri })).toBe(true);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `${BASE}/me/library/contains?uris=spotify%3Atrack%3Ax1`
     );
-    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/me/tracks/contains?ids=x1`);
   });
 
   it('setTrackLiked usa PUT para curtir e DELETE para descurtir', async () => {
     const fetchMock = vi.fn().mockResolvedValue(response(200));
-    await setTrackLiked({ token: 't', fetch: fetchMock, trackId: 'x1', isLiked: true });
-    await setTrackLiked({ token: 't', fetch: fetchMock, trackId: 'x1', isLiked: false });
+    const trackUri = 'spotify:track:x1';
+    await setTrackLiked({ token: 't', fetch: fetchMock, trackUri, isLiked: true });
+    await setTrackLiked({ token: 't', fetch: fetchMock, trackUri, isLiked: false });
     expect(fetchMock.mock.calls[0][1].method).toBe('PUT');
     expect(fetchMock.mock.calls[1][1].method).toBe('DELETE');
-    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/me/tracks?ids=x1`);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `${BASE}/me/library?uris=spotify%3Atrack%3Ax1`
+    );
   });
 });
 
@@ -147,5 +154,59 @@ describe('tratamento de erros', () => {
     const error = await failureOf(vi.fn().mockResolvedValue(response(500)));
     expect(error.kind).toBe('http');
     expect(error.status).toBe(500);
+  });
+});
+
+describe('dispositivos', () => {
+  it('getDevices devolve a lista de dispositivos', async () => {
+    const devices = [{ id: 'd1', type: 'Computer' }];
+    const fetchMock = vi.fn().mockResolvedValue(response(200, { body: { devices } }));
+    expect(await getDevices({ token: 't', fetch: fetchMock })).toEqual(devices);
+    expect(fetchMock.mock.calls[0][0]).toBe(`${BASE}/me/player/devices`);
+  });
+});
+
+describe('transferPlayback', () => {
+  it('envia o dispositivo e play=true para retomar a sessão do Spotify', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response(204));
+    await transferPlayback({
+      token: 't',
+      fetch: fetchMock,
+      deviceId: 'd1',
+      shouldPlay: true,
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe(`${BASE}/me/player`);
+    expect(init.method).toBe('PUT');
+    expect(init.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(init.body)).toEqual({ device_ids: ['d1'], play: true });
+  });
+
+  it('não inicia o áudio por padrão', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(response(204));
+    await transferPlayback({ token: 't', fetch: fetchMock, deviceId: 'd1' });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).play).toBe(false);
+  });
+});
+
+describe('searchTracks', () => {
+  it('busca por título e artista e devolve os itens', async () => {
+    const items = [{ id: 't1' }];
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(response(200, { body: { tracks: { items } } }));
+    const result = await searchTracks({
+      token: 't',
+      fetch: fetchMock,
+      title: "Doin' Time",
+      artist: 'Lana',
+    });
+
+    expect(result).toEqual(items);
+    const url = new URL(fetchMock.mock.calls[0][0]);
+    expect(url.pathname).toBe('/v1/search');
+    expect(url.searchParams.get('type')).toBe('track');
+    expect(url.searchParams.get('q')).toBe("track:Doin' Time artist:Lana");
   });
 });

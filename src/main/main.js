@@ -1,18 +1,18 @@
 // Ponto de entrada do Electron: só cria a janela, a bandeja e conecta os módulos.
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from 'electron';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTokenManager } from './auth.js';
+import { createDebugLog } from './debug-log.js';
 import { registerIpc } from './ipc.js';
 import { createStore } from './store.js';
-import { restoreBounds } from './window-bounds.js';
+import { registerWindowDrag } from './window-drag.js';
+import { createWindowMode, NORMAL_MIN } from './window-mode.js';
 
 const APP_ROOT = join(import.meta.dirname, '..', '..');
-const DEFAULT_SIZE = { width: 340, height: 420 };
-const MIN_SIZE = { width: 260, height: 320 };
-const SAVE_BOUNDS_DELAY_MS = 400;
 
-let mainWindow = null;
+let windowMode = null;
+let debugLog = null;
 let tray = null;
 
 function readClientId() {
@@ -25,18 +25,37 @@ function readClientId() {
   }
 }
 
-function createWindow(store) {
-  const workAreas = screen.getAllDisplays().map((display) => display.workArea);
-  const bounds = restoreBounds(store.get('bounds'), workAreas, DEFAULT_SIZE);
+// Se a tela da janela morrer (processo de renderização cai) ela fica só com o fundo acrílico,
+// vazia. Registra no log e recarrega a página para o app se recuperar sozinho.
+function watchWindowHealth(window) {
+  const { webContents } = window;
+  webContents.on('render-process-gone', (_event, details) => {
+    debugLog?.write(`[janela] tela caiu (${details.reason}, código ${details.exitCode})`);
+    if (details.reason !== 'clean-exit' && !window.isDestroyed()) {
+      setTimeout(() => !window.isDestroyed() && webContents.reload(), 500);
+    }
+  });
+  webContents.on('did-fail-load', (_event, code, description) => {
+    debugLog?.write(`[janela] falha ao carregar (${code}) ${description}`);
+  });
+  window.on('unresponsive', () => debugLog?.write('[janela] sem resposta'));
+  window.on('responsive', () => debugLog?.write('[janela] voltou a responder'));
+}
 
+// O modo normal usa o fundo acrílico do Windows 11 (borra o que está atrás); a tag é
+// transparente para poder ser uma pílula. Por isso são janelas diferentes (ver window-mode.js).
+function createWindow(mode, bounds) {
+  const isTag = mode === 'tag';
   const window = new BrowserWindow({
     ...bounds,
-    minWidth: MIN_SIZE.width,
-    minHeight: MIN_SIZE.height,
+    ...(isTag ? {} : { minWidth: NORMAL_MIN.width, minHeight: NORMAL_MIN.height }),
     frame: false,
-    transparent: true,
+    transparent: isTag,
+    backgroundColor: isTag ? undefined : '#00000000',
+    backgroundMaterial: isTag ? 'none' : 'acrylic',
+    icon: join(APP_ROOT, 'assets', 'icon.png'),
     alwaysOnTop: true,
-    resizable: true,
+    resizable: !isTag,
     skipTaskbar: true,
     show: false,
     webPreferences: {
@@ -47,34 +66,16 @@ function createWindow(store) {
     },
   });
 
-  window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'));
+  watchWindowHealth(window);
+  window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'), { query: { mode } });
   window.once('ready-to-show', () => window.show());
-  rememberBounds(window, store);
-  // Fechar só esconde na bandeja; "Sair" fica no menu da bandeja.
-  window.on('close', (event) => {
-    if (app.isQuitting) return;
-    event.preventDefault();
-    window.hide();
-  });
   return window;
 }
 
-function rememberBounds(window, store) {
-  let timer = null;
-  const save = () => {
-    clearTimeout(timer);
-    timer = setTimeout(
-      () => store.set('bounds', window.getBounds()),
-      SAVE_BOUNDS_DELAY_MS
-    );
-  };
-  window.on('resize', save);
-  window.on('move', save);
-}
-
 function toggleWindow() {
-  if (mainWindow.isVisible()) mainWindow.hide();
-  else mainWindow.show();
+  const window = windowMode.getWindow();
+  if (window.isVisible()) window.hide();
+  else window.show();
 }
 
 function createTray() {
@@ -98,21 +99,27 @@ function start() {
   const clientId = readClientId();
   const tokens = createTokenManager({ store, clientId });
 
-  registerIpc({ tokens, clientId });
-  ipcMain.handle('window:hide', () => mainWindow.hide());
-  mainWindow = createWindow(store);
+  debugLog = createDebugLog({
+    filePath: join(app.getPath('userData'), 'debug.log'),
+  });
+  registerIpc({ tokens, clientId, debugLog });
+  app.on('child-process-gone', (_event, details) =>
+    debugLog.write(`[processo] ${details.type} caiu (${details.reason})`)
+  );
+  ipcMain.handle('window:quit', () => app.quit());
+  registerWindowDrag(() => windowMode.getWindow());
+  windowMode = createWindowMode({ store, createWindow });
+  ipcMain.handle('window:get-mode', () => windowMode.getMode());
+  ipcMain.handle('window:set-mode', (_event, mode) => windowMode.setMode(mode));
   tray = createTray();
 }
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => mainWindow?.show());
-  app.on('before-quit', () => {
-    app.isQuitting = true;
-    tray?.destroy();
-  });
-  // Mantém o app vivo na bandeja mesmo sem janelas visíveis.
-  app.on('window-all-closed', () => {});
+  app.on('second-instance', () => windowMode?.getWindow().show());
+  app.on('before-quit', () => tray?.destroy());
+  // Ocultar na bandeja usa hide() (a janela continua existindo); fechar encerra o app.
+  app.on('window-all-closed', () => app.quit());
   app.whenReady().then(start);
 }

@@ -44,12 +44,16 @@ async function toSpotifyError(response) {
   return new SpotifyError('http', { status, message: `HTTP ${status}` });
 }
 
-async function request({ token, fetch = globalThis.fetch, method = 'GET', path }) {
+async function request({ token, fetch = globalThis.fetch, method = 'GET', path, body }) {
+  const headers = { Authorization: `Bearer ${token}` };
+  if (body) headers['Content-Type'] = 'application/json';
+
   let response;
   try {
     response = await fetch(`${SPOTIFY_API_BASE}${path}`, {
       method,
-      headers: { Authorization: `Bearer ${token}` },
+      headers,
+      body: body && JSON.stringify(body),
     });
   } catch (cause) {
     throw new SpotifyError('network', { message: cause.message });
@@ -95,18 +99,48 @@ export const setShuffle = ({ isShuffled, ...options }) =>
 export const setRepeat = ({ mode, ...options }) =>
   request({ ...options, method: 'PUT', path: `/me/player/repeat?state=${mode}` });
 
-export async function isTrackLiked({ trackId, ...options }) {
+// Biblioteca do usuário (substitui os endpoints antigos /me/tracks, hoje obsoletos).
+const libraryQuery = (trackUri) => `uris=${encodeURIComponent(trackUri)}`;
+
+export async function isTrackLiked({ trackUri, ...options }) {
   const response = await request({
     ...options,
-    path: `/me/tracks/contains?ids=${trackId}`,
+    path: `/me/library/contains?${libraryQuery(trackUri)}`,
   });
   const [isLiked] = await response.json();
   return Boolean(isLiked);
 }
 
-export const setTrackLiked = ({ trackId, isLiked, ...options }) =>
+export const setTrackLiked = ({ trackUri, isLiked, ...options }) =>
   request({
     ...options,
     method: isLiked ? 'PUT' : 'DELETE',
-    path: `/me/tracks?ids=${trackId}`,
+    path: `/me/library?${libraryQuery(trackUri)}`,
+  });
+
+export async function getDevices(options) {
+  const response = await request({ ...options, path: '/me/player/devices' });
+  return (await response.json()).devices ?? [];
+}
+
+/** Busca faixas pelo título e artista (usado para completar a música lida do Windows). */
+export async function searchTracks({ title, artist, ...options }) {
+  const query = encodeURIComponent(`track:${title} artist:${artist}`);
+  const response = await request({
+    ...options,
+    path: `/search?type=track&limit=5&q=${query}`,
+  });
+  return (await response.json()).tracks?.items ?? [];
+}
+
+/**
+ * Move a reprodução para um dispositivo. Com shouldPlay=true, retoma a sessão que o
+ * próprio Spotify tinha carregada (funciona mesmo quando o dispositivo está inativo).
+ */
+export const transferPlayback = ({ deviceId, shouldPlay = false, ...options }) =>
+  request({
+    ...options,
+    method: 'PUT',
+    path: '/me/player',
+    body: { device_ids: [deviceId], play: shouldPlay },
   });

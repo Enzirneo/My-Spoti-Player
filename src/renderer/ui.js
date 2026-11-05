@@ -1,16 +1,21 @@
 // Funções que atualizam o DOM. Nenhuma regra de negócio aqui: recebem dados
 // já prontos e só refletem na tela. Estilo fica no CSS (aqui só troca classes).
 import { msToClock } from '../shared/format.js';
+import { loadTheme } from './palette.js';
 import { progressRatio } from './progress.js';
 
 const TOAST_DURATION_MS = 2200;
+const WAVE_COLOR_VARS = 3; // --theme-wave-1..3 (ver palette.js)
 
 const STATUS_MESSAGES = {
   'missing-config': 'Preencha o "clientId" no config.json e reinicie o app.',
   'login-required': 'Conecte sua conta do Spotify para controlar a reprodução.',
   'logging-in': 'Conclua o login no navegador…',
   loading: 'Carregando…',
-  'no-device': 'Nenhum dispositivo ativo.\nAbra o Spotify e toque alguma coisa.',
+  'no-device': 'O Spotify não está aberto neste computador.',
+  waking: 'Abrindo o Spotify…',
+  idle: 'Spotify aberto, nada tocando.',
+  resuming: 'Retomando a música…',
   empty: 'Nada tocando no momento.',
 };
 
@@ -19,6 +24,14 @@ const $ = (id) => document.getElementById(id);
 export const elements = {
   player: $('player'),
   covers: [$('cover-a'), $('cover-b')],
+  tagCover: $('tag-cover'),
+  tagLine: document.querySelector('.tag__line'),
+  tagTitle: $('tag-title'),
+  tagArtist: $('tag-artist'),
+  tagPlayButton: $('tag-play-btn'),
+  tagPreviousButton: $('tag-previous-btn'),
+  tagNextButton: $('tag-next-btn'),
+  tagModeButton: $('tag-mode-btn'),
   info: $('info'),
   title: $('title'),
   artist: $('artist'),
@@ -33,7 +46,6 @@ export const elements = {
   copyButton: $('copy-btn'),
   volume: $('volume'),
   progressBar: $('progress-bar'),
-  progressFill: $('progress-fill'),
   timeCurrent: $('time-current'),
   timeTotal: $('time-total'),
   status: $('status'),
@@ -46,37 +58,80 @@ export const elements = {
 let visibleCoverIndex = -1;
 let toastTimer = null;
 
-/** Mostra a capa nova por cima da antiga (o crossfade é feito pelo CSS). */
+/** Mostra a capa nova: crossfade na capa de fundo e miniatura da tag. */
 function showCover(url) {
   const nextIndex = (visibleCoverIndex + 1) % elements.covers.length;
   const nextCover = elements.covers[nextIndex];
   const preloader = new Image();
+  preloader.crossOrigin = 'anonymous'; // sem isso o navegador não deixa ler as cores da capa
   preloader.onload = () => {
     nextCover.src = url;
     elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
     nextCover.classList.add('is-visible');
     visibleCoverIndex = nextIndex;
+    elements.tagCover.src = url;
+    applyTheme(loadTheme(preloader));
   };
   preloader.src = url;
 }
 
-function replayChangeAnimation() {
-  elements.info.classList.remove('is-changing');
-  void elements.info.offsetWidth; // força reflow para a animação reiniciar
-  elements.info.classList.add('is-changing');
+function clearCover() {
+  elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
+  elements.tagCover.removeAttribute('src');
+  applyTheme(null);
+}
+
+/** Troca as cores do app pelas da capa; sem tema, volta ao cinza neutro do CSS. */
+function applyTheme(theme) {
+  const { style } = elements.player;
+  if (!theme) {
+    style.removeProperty('--theme-bg');
+    style.removeProperty('--theme-accent');
+    for (let index = 1; index <= WAVE_COLOR_VARS; index++) {
+      style.removeProperty(`--theme-wave-${index}`);
+    }
+    return;
+  }
+  style.setProperty('--theme-bg', theme.background);
+  style.setProperty('--theme-accent', theme.accent);
+  theme.colors.forEach((color, index) =>
+    style.setProperty(`--theme-wave-${index + 1}`, color)
+  );
+}
+
+function replayAnimation(element) {
+  element.classList.remove('is-changing');
+  void element.offsetWidth; // força reflow para a animação reiniciar
+  element.classList.add('is-changing');
 }
 
 export function renderTrack(track) {
   elements.title.textContent = track.name;
   elements.artist.textContent = track.artists;
   elements.album.textContent = track.album;
+  elements.tagTitle.textContent = track.name;
+  elements.tagArtist.textContent = track.artists;
   elements.timeTotal.textContent = msToClock(track.durationMs);
   if (track.coverUrl) showCover(track.coverUrl);
-  replayChangeAnimation();
+  else clearCover();
+  replayAnimation(elements.info);
+  updateTagScroll();
+}
+
+/** Se o texto da tag não cabe, liga a rolagem e diz ao CSS quanto ele precisa andar. */
+export function updateTagScroll() {
+  const { tagLine } = elements;
+  const overflow = tagLine.firstElementChild.offsetWidth - tagLine.clientWidth;
+  tagLine.classList.toggle('is-scrolling', overflow > 0);
+  tagLine.style.setProperty('--scroll-distance', `${Math.max(overflow, 0)}px`);
 }
 
 export function renderControls(state) {
-  elements.playButton.classList.toggle('is-playing', state.isPlaying);
+  elements.player.classList.toggle('is-idle', Boolean(state.isIdle));
+  elements.player.classList.toggle('is-playing', state.isPlaying); // a onda só corre tocando
+  for (const button of [elements.playButton, elements.tagPlayButton]) {
+    button.classList.toggle('is-playing', state.isPlaying);
+  }
   elements.shuffleButton.classList.toggle('is-active', state.isShuffled);
   elements.repeatButton.dataset.repeat = state.repeatMode;
   elements.volume.disabled = !state.canSetVolume;
@@ -84,14 +139,13 @@ export function renderControls(state) {
 
 export function renderVolume(volume) {
   elements.volume.value = volume;
+  elements.volume.style.setProperty('--value', volume);
 }
 
 export function renderProgress(progressMs, durationMs) {
   elements.timeCurrent.textContent = msToClock(progressMs);
-  elements.progressFill.style.setProperty(
-    '--progress',
-    progressRatio(progressMs, durationMs)
-  );
+  // A variável fica na raiz: a barra da janela e a linha da tag leem a mesma.
+  elements.player.style.setProperty('--progress', progressRatio(progressMs, durationMs));
 }
 
 export function renderLiked({ isLiked, isLikeable }) {
@@ -103,7 +157,6 @@ export function renderLiked({ isLiked, isLikeable }) {
 export function renderStatus(kind, { actionLabel } = {}) {
   const message = STATUS_MESSAGES[kind];
   elements.status.hidden = !message;
-  elements.player.classList.toggle('is-disabled', Boolean(message));
   if (!message) return;
 
   elements.statusText.textContent = message;
@@ -125,4 +178,10 @@ export function showToast(text) {
     () => elements.toast.classList.remove('is-visible'),
     TOAST_DURATION_MS
   );
+}
+
+/** Troca entre "normal" (janela) e "tag" (barra mini); o CSS faz o resto. */
+export function renderMode(mode) {
+  elements.player.dataset.mode = mode;
+  requestAnimationFrame(updateTagScroll); // só dá para medir com a tag visível
 }

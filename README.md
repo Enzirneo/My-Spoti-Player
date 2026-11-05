@@ -32,6 +32,10 @@ npm install
 npm start
 ```
 
+Depois de instalado, não precisa do terminal: dê dois cliques em `iniciar.vbs` (ou crie
+um atalho para ele na área de trabalho / menu Iniciar; use `assets/icon.ico` como ícone do
+atalho). O ícone do app é `assets/icon.svg` (o `icon.png` e o `icon.ico` saem dele).
+
 Na primeira vez, clique em **Entrar com Spotify**: o navegador abre, você autoriza e o
 app guarda o refresh token localmente (pasta de dados do usuário do Electron). Nas
 próximas execuções o login é automático.
@@ -41,18 +45,36 @@ ativo.
 
 ## Uso
 
-- Arraste a janela em qualquer área livre; redimensione pelas bordas.
-- O **×** oculta o app na bandeja. Clique no ícone da bandeja para mostrar/ocultar, ou
-  use o menu dele para **Sair**.
-- A posição e o tamanho da janela são lembrados.
+- O app abre como uma **janelinha** com um cartão grande da capa (título e artista por cima),
+  barra de progresso em **onda**, e botões redondos de anterior, play/pause e próxima. As
+  cores do fundo e da onda **mudam sozinhas** conforme a capa da música.
+- Arraste por qualquer área livre; redimensione pelas bordas. Posição e tamanho são lembrados.
+- Passe o mouse sobre a janela para ver os botões do topo (modo mini, volume, copiar link,
+  fechar).
+- O botão de **modo mini** transforma a janela numa **tag** em pílula (capa redonda, título,
+  anterior/play/próxima e a onda de progresso na borda). Ela começa no topo e no centro da
+  tela, mas pode ser arrastada para qualquer lugar (a posição também é lembrada). Um **clique**
+  em qualquer área livre da tag volta para a janela.
+- O **×** fecha o app. Pelo ícone da bandeja você mostra/oculta ou escolhe **Sair** (útil quando só a tag está visível).
 - Clique na barra de progresso para pular para aquele ponto.
 
 ## Personalizar o visual
 
 Todo o visual está em [`src/renderer/style.css`](src/renderer/style.css). O bloco `:root`
 no topo concentra cores, raios, fontes, tamanhos e durações de animação (cada grupo está
-comentado). O resto do arquivo só usa essas variáveis. Há exemplos de animação no botão
-play/pause, na troca de capa/texto e no coração de curtir.
+comentado). O resto do arquivo só usa essas variáveis.
+
+- **Cores:** `--theme-bg` e `--theme-accent` são trocadas pelo app a cada música (a partir da
+  capa); o que não vem da capa fica em `--color-*`.
+- **Ondas:** são 5 morros translúcidos, todos em tons da mesma cor dominante da capa. Cada
+  morro nasce bem pequeno na ponta esquerda, cruza até a direita crescendo e volta a
+  diminuir; na janela eles correm pela parte já tocada da barra, na tag pela faixa de baixo.
+  Mexa em `--wave-amp*` (altura) e `--pulse-*` (largura e transparência); as cores e os
+  tempos de cada morro ficam nas regras `.pulse:nth-child(n)`.
+- **Fundo da janela:** a janela normal usa o fundo acrílico do Windows 11 (borra o que está
+  atrás); `--window-opacity` controla quanto da cor da capa cobre esse fundo. A tag é uma
+  janela transparente à parte, por isso trocar de modo abre uma janela nova.
+- **Animações de exemplo:** play/pause, troca de capa/texto, coração e troca entre janela e tag.
 
 ## Estrutura
 
