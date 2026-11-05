@@ -40,8 +40,7 @@
   --radius-cover: 26px; /* cartão da capa */
   --radius-tag: 999px; /* tag (pílula) */
   --radius-pill: 999px;
-  --radius-play-paused: 50%; /* play/pause: círculo parado... */
-  --radius-play-playing: 38%; /* ...e quadrado arredondado tocando */
+  --radius-play: 50%; /* play/pause: sempre redondo */
 
   /* ---- Fonte e tamanhos ---- */
   --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
@@ -495,6 +494,8 @@ button {
   width: calc(var(--progress, 0) * 100%);
   height: calc(var(--wave-height) + var(--wave-thickness));
   overflow: hidden;
+  container-type: inline-size; /* permite medir a largura tocada em cqw */
+  --wave-cap-ratio: 16cqw; /* altura máxima do morro: 16% da largura já tocada */
 }
 
 .wave__played::after {
@@ -601,15 +602,14 @@ button {
   transform: translateX(2px);
 }
 
-/* Play/pause é o destaque: cor da capa, e vira um quadrado arredondado quando está tocando. */
+/* Play/pause é o destaque: cor da capa, sempre redondo. */
 .controls__round.play-btn {
   width: var(--btn-play-size);
   height: var(--btn-play-size);
   background: var(--theme-accent);
   color: var(--color-on-accent);
-  border-radius: var(--radius-play-paused);
+  border-radius: var(--radius-play);
   transition:
-    border-radius var(--duration-play-toggle) var(--ease-bounce),
     filter var(--duration-fast),
     transform var(--duration-fast) var(--ease-bounce);
 }
@@ -617,10 +617,6 @@ button {
 .controls__round.play-btn:hover {
   background: var(--theme-accent);
   filter: brightness(1.08);
-}
-
-.controls__round.play-btn.is-playing {
-  border-radius: var(--radius-play-playing);
 }
 
 /* Aleatório ligado e repetir em "contexto" ou "faixa" */
@@ -846,17 +842,20 @@ button {
   --peak: 1; /* altura máxima, de 0 a 1 */
   --duration: 5s; /* tempo para atravessar da esquerda para a direita */
   --delay: 0s;
+  /* Altura real do morro. Nas ondas da janela ela é limitada pela largura da parte tocada
+     (--wave-cap), para o morro não ficar alto e fino quando a música está no começo. */
+  --h: min(var(--wave-height), var(--wave-cap, 9999px));
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: var(--wave-height);
+  height: var(--h);
   background: var(--color);
   opacity: var(--pulse-opacity);
   -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
   mask: var(--pulse-shape) no-repeat 50% 100% / var(--pulse-width) 100%;
-  transform-origin: 50% 100%;
-  transform: translateX(-50%) scaleY(0.02);
+  height: calc(var(--h) * 0.02);
+  transform: translateX(-50%);
   animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
 }
 
@@ -866,6 +865,7 @@ button {
 
 /* Na barra da janela os morros ficam sobre a linha, só na parte já tocada. */
 .wave__played .pulse {
+  --wave-cap: var(--wave-cap-ratio); /* ver .wave__played */
   bottom: calc(var(--wave-thickness) - 1px);
 }
 
@@ -904,22 +904,27 @@ button {
 
 /* O centro do morro vai da ponta esquerda (-50%) à direita (+50%). Ele nasce quase sem altura
    na esquerda, é maior no meio e volta a ficar sem altura na direita; assim, mesmo cortado pela
-   borda da pista, o corte não aparece. Sem degradê nenhum. */
+   borda da pista, o corte não aparece. Sem degradê nenhum. A altura é animada (e não scaleY) para o desenho continuar nítido. */
 @keyframes pulse-cross {
   0% {
-    transform: translateX(-50%) scaleY(0.02);
+    transform: translateX(-50%);
+    height: calc(var(--h) * 0.02);
   }
   25% {
-    transform: translateX(-25%) scaleY(calc(var(--peak) * 0.6));
+    transform: translateX(-25%);
+    height: calc(var(--h) * var(--peak) * 0.6);
   }
   50% {
-    transform: translateX(0) scaleY(var(--peak));
+    transform: translateX(0);
+    height: calc(var(--h) * var(--peak));
   }
   75% {
-    transform: translateX(25%) scaleY(calc(var(--peak) * 0.6));
+    transform: translateX(25%);
+    height: calc(var(--h) * var(--peak) * 0.6);
   }
   100% {
-    transform: translateX(50%) scaleY(0.02);
+    transform: translateX(50%);
+    height: calc(var(--h) * 0.02);
   }
 }
 
