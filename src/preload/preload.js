@@ -8,7 +8,6 @@ contextBridge.exposeInMainWorld('api', {
   getAuthStatus: () => ipcRenderer.invoke('auth:status'),
   login: () => ipcRenderer.invoke('auth:login'),
   logout: () => ipcRenderer.invoke('auth:logout'),
-  hideWindow: () => ipcRenderer.invoke('window:hide'),
   quitApp: () => ipcRenderer.invoke('window:quit'),
   getWindowMode: () => ipcRenderer.invoke('window:get-mode'),
   setWindowMode: (mode) => ipcRenderer.invoke('window:set-mode', mode),

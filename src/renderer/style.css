@@ -81,7 +81,6 @@
   --space-lg: 16px;
   --window-opacity: 62%; /* cor da capa sobre o fundo acrílico (borrado) da janela normal: menor = mais borrado */
   --tag-opacity: 94%; /* fundo da tag */
-  --window-margin-tag: 8px; /* sobra da janela da tag (espaço da sombra) */
 
   /* ---- Animações ---- */
   --duration-fast: 150ms; /* hover e clique */
@@ -698,12 +697,10 @@ button {
 
 .player[data-mode='tag'] {
   background-color: color-mix(in srgb, var(--theme-bg) var(--tag-opacity), transparent);
-  height: calc(100% - 2 * var(--window-margin-tag));
-  margin: var(--window-margin-tag);
+  height: 100%;
   flex-direction: row;
   align-items: center;
   border-radius: var(--radius-tag);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .tag {
