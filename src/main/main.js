@@ -53,6 +53,7 @@ function createWindow(mode, bounds) {
     transparent: isTag,
     backgroundColor: isTag ? undefined : '#00000000',
     backgroundMaterial: isTag ? 'none' : 'acrylic',
+    icon: join(APP_ROOT, 'assets', 'icon.png'),
     alwaysOnTop: true,
     resizable: !isTag,
     skipTaskbar: true,
