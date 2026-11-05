@@ -4,15 +4,12 @@
       <stop offset="0" stop-color="#1f4a4f" />
       <stop offset="1" stop-color="#0c1d26" />
     </linearGradient>
-    <clipPath id="clip"><rect width="512" height="512" rx="116" /></clipPath>
   </defs>
   <rect width="512" height="512" rx="116" fill="url(#bg)" />
-  <g clip-path="url(#clip)">
-    <path d="M-40 400C40 400 90 150 200 150S330 400 420 400Z" fill="#3fd0b4" opacity=".85" />
-    <path d="M110 400C200 400 250 90 360 90S470 400 560 400Z" fill="#7fe3f0" opacity=".8" />
-    <path d="M-80 400C0 400 70 250 150 250S250 400 330 400Z" fill="#b9f3e4" opacity=".7" />
-    <path d="M200 400C270 400 320 220 400 220S480 400 560 400Z" fill="#2aa7c9" opacity=".8" />
-    <rect x="56" y="388" width="400" height="30" rx="15" fill="#e9fff9" />
-    <circle cx="330" cy="403" r="30" fill="#ffffff" stroke="#16414a" stroke-width="10" />
-  </g>
+  <path d="M62 372C112 372 142 160 212 160S302 372 352 372Z" fill="#3fd0b4" opacity=".85" />
+  <path d="M146 372C206 372 246 100 318 100S418 372 450 372Z" fill="#7fe3f0" opacity=".8" />
+  <path d="M78 372C118 372 148 244 198 244S268 372 298 372Z" fill="#b9f3e4" opacity=".7" />
+  <path d="M226 372C276 372 306 212 354 212S420 372 450 372Z" fill="#2aa7c9" opacity=".8" />
+  <rect x="62" y="354" width="388" height="34" rx="17" fill="#e9fff9" />
+  <circle cx="290" cy="371" r="31" fill="#ffffff" stroke="#16414a" stroke-width="10" />
 </svg>
