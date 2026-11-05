@@ -33,7 +33,8 @@ npm start
 ```
 
 Depois de instalado, não precisa do terminal: dê dois cliques em `iniciar.vbs` (ou crie
-um atalho para ele na área de trabalho / menu Iniciar).
+um atalho para ele na área de trabalho / menu Iniciar; use `assets/icon.ico` como ícone do
+atalho). O ícone do app é `assets/icon.svg` (o `icon.png` e o `icon.ico` saem dele).
 
 Na primeira vez, clique em **Entrar com Spotify**: o navegador abre, você autoriza e o
 app guarda o refresh token localmente (pasta de dados do usuário do Electron). Nas
