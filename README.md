@@ -1,19 +1,70 @@
+<div align="center">
+
+<img src="docs/img/icon.png" alt="Ícone do My Spoti Player" width="120" />
+
 # My Spoti Player
 
-Mini player personalizado do Spotify (Electron + HTML/CSS/JS puro). O app oficial do
-Spotify continua tocando o áudio; este app é só o controle visual, via Web API.
+**Um mini player do Spotify que fica sempre à vista, com cores que mudam junto com a capa e ondas que dançam na barra de progresso.**
 
-> Controlar a reprodução pela Web API exige uma conta **Spotify Premium**.
+Electron · HTML, CSS e JS puro · sem frameworks · feito para Windows
 
-## 1. Criar o app no Spotify e pegar o Client ID
+</div>
+
+<div align="center">
+
+<img src="docs/img/janela.png" alt="Janela normal: capa, barra em onda e botões redondos" width="300" />
+
+<br />
+
+<img src="docs/img/tag.png" alt="Modo tag: pílula compacta com capa, controles e onda" width="330" />
+
+<sub>As capturas usam uma música e uma capa de exemplo.</sub>
+
+</div>
+
+---
+
+## Por que existe
+
+O app do Spotify é pesado e vive escondido atrás de outras janelas. O **My Spoti Player** é só o
+controle: uma janelinha (ou uma pílula ainda menor) que fica por cima de tudo, bonita e leve. O
+áudio continua tocando no Spotify oficial; este app conversa com ele pela Web API.
+
+## Destaques
+
+- 🎨 **Tema que vem da capa.** O app descobre a cor dominante da capa e pinta fundo, botões e
+  ondas só com tons dela (mais claros ou mais escuros). Capa preto e branco? Tudo em cinza.
+- 🌊 **Ondas vivas.** A barra de progresso e a base da tag têm morros translúcidos que nascem
+  pequenos, crescem e somem, sempre da esquerda para a direita. Cada morro tem largura,
+  altura, velocidade e cor próprias, e eles se sobrepõem como uma onda só.
+- 💊 **Dois modos.** Janela normal (cartão grande da capa) ou **tag** em pílula, que dá para
+  arrastar para qualquer lugar. Um clique na tag volta para a janela.
+- 🪟 **Fundo borrado.** A janela normal usa o fundo acrílico do Windows 11: translúcido, mas
+  sem deixar ver o que está atrás.
+- ⚡ **Resposta imediata.** Play, pause, próxima, volume e curtir atualizam a tela na hora e
+  corrigem sozinhos se a API discordar.
+- 🔄 **Mostra a música certa logo ao abrir**, mesmo antes de dar play: lê o que o Spotify tem
+  carregado pelo Windows e, se precisar, abre o Spotify por você.
+- ❤️ **Curtir, aleatório, repetir, volume e copiar link** à mão, com ícones redondos e macios.
+- 🔒 **Seus dados ficam com você.** O login usa OAuth com PKCE, sem guardar senha, e o token fica
+  só no seu computador.
+
+## O que você precisa
+
+- Windows (a janela com fundo acrílico pede o Windows 11)
+- [Node.js](https://nodejs.org) para instalar e rodar
+- App do Spotify instalado
+- Conta **Spotify Premium** (a Web API só deixa controlar a reprodução com Premium)
+
+## Instalação
+
+### 1. Criar o app no Spotify e pegar o Client ID
 
 1. Acesse o [Developer Dashboard](https://developer.spotify.com/dashboard) e crie um app.
 2. Em **Redirect URIs**, adicione exatamente: `http://127.0.0.1:8888/callback`
 3. Copie o **Client ID** do app.
 
-## 2. Configurar
-
-Copie o arquivo de exemplo e preencha o `clientId`:
+### 2. Configurar
 
 ```bash
 cp config.example.json config.json
@@ -25,69 +76,72 @@ cp config.example.json config.json
 
 O `config.json` está no `.gitignore` e nunca vai para o Git.
 
-## 3. Rodar
+### 3. Rodar
 
 ```bash
 npm install
 npm start
 ```
 
-Depois de instalado, não precisa do terminal: dê dois cliques em `iniciar.vbs` (ou crie
-um atalho para ele na área de trabalho / menu Iniciar; use `assets/icon.ico` como ícone do
-atalho). O ícone do app é `assets/icon.svg` (o `icon.png` e o `icon.ico` saem dele).
+Na primeira vez, clique em **Entrar com Spotify**: o navegador abre, você autoriza e o app
+guarda o refresh token localmente. Nas próximas execuções o login é automático.
 
-Na primeira vez, clique em **Entrar com Spotify**: o navegador abre, você autoriza e o
-app guarda o refresh token localmente (pasta de dados do usuário do Electron). Nas
-próximas execuções o login é automático.
+### Abrir sem terminal
 
-Mantenha o Spotify aberto (e tocando algo ao menos uma vez) para existir um dispositivo
-ativo.
+Dê dois cliques em `iniciar.vbs`, ou crie um atalho para ele na área de trabalho ou no menu
+Iniciar (use `assets/icon.ico` como ícone). O app **não** abre sozinho com o Windows: você
+escolhe quando começa e quando para (**×** ou **Sair** na bandeja).
 
-## Uso
+## Como usar
 
-- O app abre como uma **janelinha** com um cartão grande da capa (título e artista por cima),
-  barra de progresso em **onda**, e botões redondos de anterior, play/pause e próxima. As
-  cores do fundo e da onda **mudam sozinhas** conforme a capa da música.
-- Arraste por qualquer área livre; redimensione pelas bordas. Posição e tamanho são lembrados.
-- Passe o mouse sobre a janela para ver os botões do topo (modo mini, volume, copiar link,
-  fechar).
-- O botão de **modo mini** transforma a janela numa **tag** em pílula (capa redonda, título,
-  anterior/play/próxima e a onda de progresso na borda). Ela começa no topo e no centro da
-  tela, mas pode ser arrastada para qualquer lugar (a posição também é lembrada). Um **clique**
-  em qualquer área livre da tag volta para a janela.
-- O **×** fecha o app. Pelo ícone da bandeja você mostra/oculta ou escolhe **Sair** (útil quando só a tag está visível).
-- Clique na barra de progresso para pular para aquele ponto.
+| Ação                           | Como                                                                  |
+| ------------------------------ | --------------------------------------------------------------------- |
+| Mover a janela                 | Arraste por qualquer área livre (a posição é lembrada)                |
+| Redimensionar                  | Pelas bordas da janela normal                                         |
+| Ver os botões do topo          | Passe o mouse sobre a janela (modo mini, volume, copiar link, fechar) |
+| Virar **tag**                  | Botão de modo mini no topo                                            |
+| Voltar da tag para a janela    | Clique em qualquer área livre da tag                                  |
+| Pular para um ponto da música  | Clique ou arraste na barra de progresso                               |
+| Mostrar/ocultar ou sair do app | Ícone na bandeja do sistema (clique, ou botão direito para **Sair**)  |
+| Fechar o app                   | **×** no topo da janela                                               |
 
 ## Personalizar o visual
 
-Todo o visual está em [`src/renderer/style.css`](src/renderer/style.css). O bloco `:root`
-no topo concentra cores, raios, fontes, tamanhos e durações de animação (cada grupo está
-comentado). O resto do arquivo só usa essas variáveis.
+Todo o visual está em [`src/renderer/style.css`](src/renderer/style.css). O bloco `:root` no topo
+concentra cores, raios, fontes, tamanhos e durações (cada grupo está comentado) e o resto do
+arquivo só usa essas variáveis.
 
-- **Cores:** `--theme-bg` e `--theme-accent` são trocadas pelo app a cada música (a partir da
-  capa); o que não vem da capa fica em `--color-*`.
-- **Ondas:** são 5 morros translúcidos, todos em tons da mesma cor dominante da capa. Cada
-  morro nasce bem pequeno na ponta esquerda, cruza até a direita crescendo e volta a
-  diminuir; na janela eles correm pela parte já tocada da barra, na tag pela faixa de baixo.
-  Mexa em `--wave-amp*` (altura) e `--pulse-*` (largura e transparência); as cores e os
-  tempos de cada morro ficam nas regras `.pulse:nth-child(n)`.
-- **Fundo da janela:** a janela normal usa o fundo acrílico do Windows 11 (borra o que está
-  atrás); `--window-opacity` controla quanto da cor da capa cobre esse fundo. A tag é uma
-  janela transparente à parte, por isso trocar de modo abre uma janela nova.
-- **Animações de exemplo:** play/pause, troca de capa/texto, coração e troca entre janela e tag.
+- **Cores:** `--theme-bg`, `--theme-accent` e `--theme-wave-1..3` são trocadas a cada música a
+  partir da capa. O que não vem da capa fica em `--color-*`.
+- **Ondas:** `--wave-amp*` (altura) e `--pulse-*` (largura e transparência). A personalidade de
+  cada morro (`--wide`, `--peak`, `--duration`, `--delay` e cor) fica nas regras
+  `.pulse:nth-child(n)`.
+- **Fundo da janela:** `--window-opacity` controla quanto da cor da capa cobre o fundo borrado.
+- **Ícone do app:** edite `assets/icon.svg`; o `icon.png` e o `icon.ico` saem dele.
 
-## Estrutura
+## Por dentro
 
 ```
-src/main/       janela, bandeja, OAuth (PKCE), IPC
+src/main/       janela, bandeja, OAuth (PKCE), leitura do Spotify no Windows, IPC
 src/preload/    ponte segura (contextBridge) exposta como window.api
-src/renderer/   index.html, style.css, renderer.js, ui.js, progress.js
+src/renderer/   index.html, style.css, renderer.js, ui.js, palette.js, progress.js
 src/shared/     Web API, estado da UI, formatação (sem Electron/DOM)
+assets/         ícone do app
 tests/          testes (Vitest)
 docs/           guias do projeto (Git flow, estilo de código, testes)
 ```
 
-## Comandos
+Algumas decisões do projeto:
+
+- **Sem frameworks nem dependências extras.** Só Electron; o resto é JS, HTML e CSS puros.
+- **Lógica separada do Electron e do DOM** (`src/shared`, `palette.js`...), por isso é testada
+  com facilidade.
+- **Duas janelas, uma por modo.** A janela normal usa acrílico; a tag é transparente para ser
+  uma pílula. Trocar de modo abre a janela certa e fecha a outra.
+- **Se a tela travar,** ela se recarrega sozinha e o motivo vai para `debug.log`, na pasta de
+  dados do app (`%APPDATA%\my-spoti-player`).
+
+## Desenvolvimento
 
 | Comando              | O que faz       |
 | -------------------- | --------------- |
@@ -96,3 +150,21 @@ docs/           guias do projeto (Git flow, estilo de código, testes)
 | `npm run format`     | Prettier        |
 | `npm test`           | Testes          |
 | `npm run test:watch` | Testes em watch |
+
+Antes de abrir um PR, rode `npm run lint` e `npm test`. Veja os guias em
+[`docs/GIT_FLOW.md`](docs/GIT_FLOW.md), [`docs/CODE_STYLE.md`](docs/CODE_STYLE.md) e
+[`docs/TESTING.md`](docs/TESTING.md).
+
+## Limitações e próximos passos
+
+- Hoje só funciona no **Windows**: a leitura da música carregada usa a sessão de mídia do
+  Windows e o fundo borrado usa o acrílico do Windows 11.
+- Suporte ao **macOS** é viável (o Electron é multiplataforma), mas pede trocar essas duas partes
+  por equivalentes do Mac.
+- Não existe versão para iOS ou Android.
+
+---
+
+<div align="center">
+<sub>Projeto pessoal, feito com carinho e muitas ondas. O Spotify é marca de seus donos; este app não é afiliado a eles.</sub>
+</div>
