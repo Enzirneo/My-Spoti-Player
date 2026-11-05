@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; img-src 'self' https://*.scdn.co data:; style-src 'self'; script-src 'self'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Spoti Player</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- Ícones: um sprite só, reutilizado com <use>. Usam currentColor (cor vem do CSS). -->
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="icon-play" viewBox="0 0 24 24">
+        <path
+          d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"
+        />
+      </symbol>
+      <symbol id="icon-pause" viewBox="0 0 24 24">
+        <rect x="6" y="4.5" width="4.2" height="15" rx="1.6" />
+        <rect x="13.8" y="4.5" width="4.2" height="15" rx="1.6" />
+      </symbol>
+      <symbol id="icon-next" viewBox="0 0 24 24">
+        <path
+          d="M6 6.4v11.2a.9.9 0 0 0 1.4.75l8.4-5.6a.9.9 0 0 0 0-1.5L7.4 5.65A.9.9 0 0 0 6 6.4z"
+        />
+        <rect x="16.6" y="5" width="2.6" height="14" rx="1.3" />
+      </symbol>
+      <symbol id="icon-previous" viewBox="0 0 24 24">
+        <g transform="matrix(-1 0 0 1 24 0)">
+          <path
+            d="M6 6.4v11.2a.9.9 0 0 0 1.4.75l8.4-5.6a.9.9 0 0 0 0-1.5L7.4 5.65A.9.9 0 0 0 6 6.4z"
+          />
+          <rect x="16.6" y="5" width="2.6" height="14" rx="1.3" />
+        </g>
+      </symbol>
+      <symbol id="icon-shuffle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h2.6c1.5 0 2.9.7 3.8 1.9l3.2 4.2c.9 1.2 2.3 1.9 3.8 1.9H20M4 17h2.6c1.5 0 2.9-.7 3.8-1.9M13.6 8.9c.9-1.2 2.3-1.9 3.8-1.9H20M17.6 4.6L20 7l-2.4 2.4M17.6 14.6L20 17l-2.4 2.4" /></g></symbol>
+      <symbol id="icon-repeat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11v-1a3 3 0 0 1 3-3h12M17 4l3 3-3 3M19.5 13v1a3 3 0 0 1-3 3h-12M7 14l-3 3 3 3" /></g></symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z" /></g></symbol>
+      <symbol id="icon-heart-filled" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z" /></symbol>
+      <symbol id="icon-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-.8.8M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l.8-.8" /></g></symbol>
+      <symbol id="icon-tag" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="5" fill="none" stroke="currentColor" stroke-width="2.2" /><circle cx="8.2" cy="12" r="1.9" /></symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><g fill="none" stroke="currentColor"  stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"><path d="M7 7l10 10M17 7L7 17" /></g></symbol>
+      <symbol id="icon-volume" viewBox="0 0 24 24"><path d="M4 10v4a1 1 0 0 0 1 1h2.6l3.7 3.2a.8.8 0 0 0 1.3-.6V6.4a.8.8 0 0 0-1.3-.6L7.6 9H5a1 1 0 0 0-1 1z" /><path d="M16 9.2a4 4 0 0 1 0 5.6M18.6 6.6a7.6 7.6 0 0 1 0 10.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></symbol>
+    </svg>
+
+    <!-- data-mode: "normal" (janelinha com cartão da capa) ou "tag" (pílula mini). -->
+    <main class="player" id="player" data-mode="normal">
+      <!-- ===== Modo tag: pílula com capa redonda, título, controles e onda ===== -->
+      <section class="tag" id="tag">
+        <img class="tag__cover" id="tag-cover" alt="" />
+        <div class="tag__main">
+          <p class="tag__line">
+            <span class="tag__text">
+              <span class="tag__title" id="tag-title"></span>
+              <span class="tag__artist" id="tag-artist"></span>
+            </span>
+          </p>
+          <div class="tag__controls">
+            <button
+              class="tag__btn"
+              id="tag-previous-btn"
+              title="Anterior"
+              aria-label="Anterior"
+            >
+              <svg class="icon"><use href="#icon-previous" /></svg>
+            </button>
+            <button
+              class="play-btn play-btn--tag"
+              id="tag-play-btn"
+              title="Play/pause"
+              aria-label="Play/pause"
+            >
+              <svg class="icon play-btn__icon play-btn__icon--play">
+                <use href="#icon-play" />
+              </svg>
+              <svg class="icon play-btn__icon play-btn__icon--pause">
+                <use href="#icon-pause" />
+              </svg>
+            </button>
+            <button
+              class="tag__btn"
+              id="tag-next-btn"
+              title="Próxima"
+              aria-label="Próxima"
+            >
+              <svg class="icon"><use href="#icon-next" /></svg>
+            </button>
+          </div>
+        </div>
+        <!-- Onda decorativa: 5 morros translúcidos que crescem e baixam, cada um no seu ritmo. -->
+        <div class="tag__wave" aria-hidden="true">
+          <i class="pulse"></i><i class="pulse"></i><i class="pulse"></i
+          ><i class="pulse"></i><i class="pulse"></i>
+        </div>
+      </section>
+
+      <!-- ===== Modo normal ===== -->
+      <div class="full">
+        <!-- Cartão grande com a capa; o texto fica por cima, embaixo à esquerda. -->
+        <section class="cover">
+          <div class="cover__images" aria-hidden="true">
+            <img class="cover__img" id="cover-a" alt="" />
+            <img class="cover__img" id="cover-b" alt="" />
+          </div>
+          <div class="cover__shade" aria-hidden="true"></div>
+
+          <!-- Os botões do topo só aparecem com o mouse sobre a janela. -->
+          <header class="topbar">
+            <button
+              class="chip-btn"
+              id="tag-mode-btn"
+              title="Modo mini (tag)"
+              aria-label="Modo mini"
+            >
+              <svg class="icon"><use href="#icon-tag" /></svg>
+            </button>
+            <div class="volume">
+              <svg class="icon icon--sm volume__icon"><use href="#icon-volume" /></svg>
+              <input
+                class="volume__slider"
+                id="volume"
+                type="range"
+                min="0"
+                max="100"
+                aria-label="Volume"
+              />
+            </div>
+            <button
+              class="chip-btn"
+              id="copy-btn"
+              title="Copiar link"
+              aria-label="Copiar link"
+            >
+              <svg class="icon"><use href="#icon-link" /></svg>
+            </button>
+            <button class="chip-btn" id="close-btn" title="Fechar" aria-label="Fechar">
+              <svg class="icon"><use href="#icon-close" /></svg>
+            </button>
+          </header>
+
+          <div class="cover__bottom">
+            <div class="info" id="info">
+              <h1 class="info__title" id="title"></h1>
+              <p class="info__sub">
+                <span class="info__artist" id="artist"></span>
+                <span class="info__album" id="album"></span>
+              </p>
+            </div>
+            <button
+              class="chip-btn like-btn"
+              id="like-btn"
+              title="Curtir"
+              aria-label="Curtir"
+            >
+              <svg class="icon like-btn__icon like-btn__icon--off">
+                <use href="#icon-heart" />
+              </svg>
+              <svg class="icon like-btn__icon like-btn__icon--on">
+                <use href="#icon-heart-filled" />
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Progresso: a parte tocada vira uma onda; a bolinha arrasta/clica para pular. -->
+        <div class="progress">
+          <div class="progress__bar" id="progress-bar">
+            <div class="wave__line"></div>
+            <div class="wave__played">
+              <i class="pulse"></i><i class="pulse"></i><i class="pulse"></i
+              ><i class="pulse"></i><i class="pulse"></i>
+            </div>
+            <div class="wave__thumb"></div>
+          </div>
+          <div class="progress__times">
+            <span id="time-current">0:00</span>
+            <span id="time-total">0:00</span>
+          </div>
+        </div>
+
+        <div class="controls" id="controls">
+          <button
+            class="controls__plain"
+            id="shuffle-btn"
+            title="Aleatório"
+            aria-label="Aleatório"
+          >
+            <svg class="icon icon--lg"><use href="#icon-shuffle" /></svg>
+          </button>
+          <button
+            class="controls__round"
+            id="previous-btn"
+            title="Anterior"
+            aria-label="Anterior"
+          >
+            <svg class="icon icon--lg"><use href="#icon-previous" /></svg>
+          </button>
+          <button
+            class="controls__round play-btn"
+            id="play-btn"
+            title="Play/pause"
+            aria-label="Play/pause"
+          >
+            <svg class="icon icon--xl play-btn__icon play-btn__icon--play">
+              <use href="#icon-play" />
+            </svg>
+            <svg class="icon icon--xl play-btn__icon play-btn__icon--pause">
+              <use href="#icon-pause" />
+            </svg>
+          </button>
+          <button
+            class="controls__round"
+            id="next-btn"
+            title="Próxima"
+            aria-label="Próxima"
+          >
+            <svg class="icon icon--lg"><use href="#icon-next" /></svg>
+          </button>
+          <button
+            class="controls__plain"
+            id="repeat-btn"
+            title="Repetir"
+            aria-label="Repetir"
+          >
+            <svg class="icon icon--lg"><use href="#icon-repeat" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cobre o player quando não há o que mostrar (login, nada tocando...). -->
+      <div class="status" id="status" hidden>
+        <p class="status__text" id="status-text"></p>
+        <button class="status__action" id="status-action" hidden></button>
+      </div>
+
+      <p class="banner" id="banner" hidden></p>
+      <p class="toast" id="toast"></p>
+    </main>
+
+    <script type="module" src="renderer.js"></script>
+  </body>
+</html>

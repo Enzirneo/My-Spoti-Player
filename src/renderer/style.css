@@ -1,0 +1,1039 @@
+/* ==========================================================================
+   TODO O VISUAL DO APP FICA AQUI.
+   Estilo inspirado no player de mídia do One UI: cores sólidas e suaves tiradas da capa,
+   cantos bem arredondados, botões redondos grandes e barra de progresso em onda.
+
+   Para trocar o tema, mexa só nas variáveis do bloco :root logo abaixo:
+     - Cores .............. --theme-*, --color-*   (--theme-* muda sozinho com a capa)
+     - Cantos/raios ....... --radius-*
+     - Fonte e tamanhos ... --font-*, --icon-*, --btn-*, --wave-*
+     - Espaçamentos ....... --space-*
+     - Animações .......... --duration-*, --ease-*
+   O resto do arquivo só consome essas variáveis.
+
+   O app tem dois modos, escolhidos pelo atributo data-mode do .player:
+     - "normal" : janelinha com o cartão da capa e os controles
+     - "tag"    : pílula mini (capa redonda, título, anterior/play/próxima e onda)
+   ========================================================================== */
+
+:root {
+  /* ---- Cores do tema: o JS troca as duas primeiras conforme a capa ---- */
+  --theme-bg: hsl(0, 0%, 17%); /* fundo (escuro, tingido pela capa) */
+  --theme-accent: hsl(0, 0%, 76%); /* onda de progresso e destaques */
+  /* Três cores da capa (matizes diferentes) para os morros da onda da tag. */
+  --theme-wave-1: hsl(0, 0%, 62%);
+  --theme-wave-2: hsl(0, 0%, 74%);
+  --theme-wave-3: hsl(0, 0%, 50%);
+
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.7);
+  --color-chip: rgba(0, 0, 0, 0.34); /* botões soltos sobre a capa */
+  --color-chip-hover: rgba(0, 0, 0, 0.5);
+  --color-like: #ff5c7a; /* coração curtido */
+  --color-active: #ffffff; /* aleatório/repetir ligados */
+  --color-banner-bg: rgba(220, 70, 70, 0.9);
+  --color-on-light: #1c1c22;
+  --color-on-accent: var(--theme-bg); /* ícone sobre o botão de destaque */
+
+  /* ---- Raios ---- */
+  --radius-window: 0px; /* janela normal: o Windows já arredonda os cantos do fundo acrílico */
+  --radius-cover: 26px; /* cartão da capa */
+  --radius-tag: 999px; /* tag (pílula) */
+  --radius-pill: 999px;
+  --radius-play: 50%; /* play/pause: sempre redondo */
+
+  /* ---- Fonte e tamanhos ---- */
+  --font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-size-title: 21px;
+  --font-size-artist: 13px;
+  --font-size-small: 12px;
+  --icon-size: 18px;
+  --icon-size-sm: 14px;
+  --icon-size-lg: 22px;
+  --icon-size-xl: 28px;
+  --btn-round-size: 48px; /* anterior/próxima */
+  --btn-play-size: 60px; /* play/pause */
+  --btn-chip-size: 30px; /* botões pequenos sobre a capa */
+  --tag-cover-size: 38px;
+  --tag-play-size: 34px;
+  --tag-icon-size: 26px; /* ícones da tag (sem fundo, só o desenho arredondado) */
+  --tag-wave-height: 22px; /* faixa da onda na borda de baixo da tag */
+  --tag-wave-width: 62%; /* parte da largura da tag que a onda ocupa (no meio) */
+  --tag-controls-gap: 26px; /* espaço entre anterior, play e próxima */
+
+  /* ---- Ondas ----
+     5 morros translúcidos, todos de tons da MESMA cor da capa. Cada morro nasce bem pequeno na
+     ponta esquerda, vai para a direita crescendo e volta a diminuir até sumir na ponta direita.
+     Na janela, a "pista" é a parte já tocada da barra; na tag, é a faixa embaixo da pílula. */
+  --wave-amp: 30px; /* altura máxima dos morros na barra da janela */
+  --wave-amp-tag: 16px; /* altura máxima dos morros na tag */
+  --wave-thickness: 4px; /* grossura da linha da barra */
+  --pulse-width: 44%; /* largura de cada morro (da pista) */
+  --pulse-opacity: 0.8;
+  /* Formato do morro (um SVG embutido, só o desenho importa). */
+  --pulse-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 20' preserveAspectRatio='none'%3E%3Cpath d='M0 20C22 20 26 0 50 0S78 20 100 20Z'/%3E%3C/svg%3E");
+
+  /* ---- Espaçamentos ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --window-opacity: 62%; /* cor da capa sobre o fundo acrílico (borrado) da janela normal: menor = mais borrado */
+  --tag-opacity: 94%; /* fundo da tag */
+
+  /* ---- Animações ---- */
+  --duration-fast: 150ms; /* hover e clique */
+  --duration-reveal: 220ms; /* botões que aparecem ao passar o mouse */
+  --duration-play-toggle: 280ms; /* troca play/pause */
+  --duration-track-change: 700ms; /* troca de música (capa, texto e cor) */
+  --duration-mode-change: 320ms; /* janela <-> tag */
+  --duration-marquee: 6s; /* texto da tag andando (ida e volta) */
+  --duration-wave: 1.1s; /* uma volta da onda (menor = mais rápida) */
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---------- Base ---------- */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+  background: transparent; /* a janela é transparente; o fundo é o .player */
+  font-family: var(--font-family);
+  color: var(--color-text);
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Sprite de ícones: existe só para ser referenciado com <use>. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.icon {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.icon--sm {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.icon--lg {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.icon--xl {
+  width: var(--icon-size-xl);
+  height: var(--icon-size-xl);
+}
+
+/* ---------- Janela ---------- */
+
+.player {
+  /* Derivadas do fundo: ficam aqui (e não no :root) para seguirem o tema da capa. */
+  --surface: color-mix(in srgb, var(--theme-bg) 70%, var(--theme-accent));
+  --surface-hover: color-mix(in srgb, var(--theme-bg) 58%, var(--theme-accent));
+  --track: color-mix(in srgb, var(--theme-bg) 62%, var(--theme-accent));
+  --ring: color-mix(in srgb, var(--theme-bg) 75%, black);
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: color-mix(
+    in srgb,
+    var(--theme-bg) var(--window-opacity),
+    transparent
+  );
+  border-radius: var(--radius-window);
+  /* ANIMAÇÃO: a cor de fundo escorre para a da nova capa. */
+  transition: background-color var(--duration-track-change) var(--ease-standard);
+}
+
+/* ---------- Alternância entre os modos ---------- */
+
+.player[data-mode='tag'] .full,
+.player[data-mode='normal'] .tag {
+  display: none;
+}
+
+/* ANIMAÇÃO: o conteúdo "brota" ao trocar de modo (a janela redimensiona na hora). */
+.player[data-mode='normal'] .full,
+.player[data-mode='tag'] .tag {
+  animation: mode-enter var(--duration-mode-change) var(--ease-standard);
+}
+
+@keyframes mode-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ---------- Modo normal ---------- */
+
+.full {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-lg);
+}
+
+/* Cartão da capa: ocupa o espaço que sobrar. */
+.cover {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-cover);
+  background: var(--surface);
+}
+
+.cover__images,
+.cover__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cover__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  /* ANIMAÇÃO: crossfade da capa na troca de música. */
+  transition: opacity var(--duration-track-change) var(--ease-standard);
+}
+
+.cover__img.is-visible {
+  opacity: 1;
+  animation: cover-in calc(var(--duration-track-change) * 1.4) var(--ease-standard);
+}
+
+@keyframes cover-in {
+  from {
+    transform: scale(1.06);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Escurece só o pé da capa, para o texto branco ficar legível sobre qualquer arte. */
+.cover__shade {
+  background:
+    linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0) 52%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0) 26%);
+}
+
+/* Botões soltos sobre a capa (cor sólida translúcida, sem desfoque). */
+.chip-btn {
+  display: grid;
+  place-items: center;
+  width: var(--btn-chip-size);
+  height: var(--btn-chip-size);
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  background: var(--color-chip);
+  transition:
+    background var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.chip-btn:hover {
+  background: var(--color-chip-hover);
+  transform: scale(1.08);
+}
+
+.chip-btn:active {
+  transform: scale(0.92);
+}
+
+/* Barra do topo: só aparece com o mouse sobre a janela (ou com foco no teclado). */
+.topbar {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  right: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duration-reveal) var(--ease-standard),
+    transform var(--duration-reveal) var(--ease-standard);
+}
+
+.player:hover .topbar,
+.player:focus-within .topbar {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Volume: pílula no centro da barra do topo. */
+.volume {
+  flex: 1;
+  min-width: 0;
+  max-width: 150px;
+  height: var(--btn-chip-size);
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--color-chip);
+}
+
+.volume__icon {
+  color: var(--color-text-muted);
+}
+
+/* Trilha fina com a parte preenchida (--value, de 0 a 100, vem do JS). */
+.volume__slider {
+  flex: 1;
+  min-width: 0;
+  height: 18px;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.volume__slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    to right,
+    var(--color-text) calc(var(--value, 0) * 1%),
+    rgba(255, 255, 255, 0.3) calc(var(--value, 0) * 1%)
+  );
+}
+
+.volume__slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--color-text);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.volume__slider:hover::-webkit-slider-thumb {
+  transform: scale(1.25);
+}
+
+.volume__slider:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Texto por cima da capa, embaixo à esquerda; coração embaixo à direita. */
+.cover__bottom {
+  position: absolute;
+  left: var(--space-md);
+  right: var(--space-md);
+  bottom: var(--space-md);
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.info__title {
+  font-size: var(--font-size-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info__sub {
+  display: flex;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: var(--font-size-artist);
+  white-space: nowrap;
+}
+
+.info__artist {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info__album {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-muted);
+}
+
+.info__album:not(:empty)::before {
+  content: '· ';
+}
+
+/* ANIMAÇÃO: o texto sobe e aparece quando a música troca (classe aplicada pelo JS). */
+.info.is-changing {
+  animation: track-change var(--duration-track-change) var(--ease-standard);
+}
+
+@keyframes track-change {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Coração: o cheio "pula" para dentro quando curtido. */
+.like-btn__icon {
+  grid-area: 1 / 1;
+  transition:
+    transform var(--duration-play-toggle) var(--ease-bounce),
+    opacity var(--duration-fast);
+}
+
+.like-btn__icon--on {
+  opacity: 0;
+  transform: scale(0.3);
+  color: var(--color-like);
+}
+
+#like-btn.is-liked .like-btn__icon--on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#like-btn.is-liked .like-btn__icon--off {
+  opacity: 0;
+}
+
+#like-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ---------- Barra de progresso em onda ---------- */
+
+.progress {
+  padding: 0 var(--space-xs);
+}
+
+.progress__bar {
+  --wave-height: var(--wave-amp);
+  --wave-line-bottom: 6px; /* distância da linha até a base da barra */
+  --wave-track: var(--track);
+  position: relative;
+  height: calc(var(--wave-amp) + var(--wave-line-bottom) + var(--wave-thickness));
+  cursor: pointer;
+}
+
+/* Linha reta do ponto atual até o fim (a parte tocada tem a própria linha, em destaque). */
+.wave__line {
+  position: absolute;
+  bottom: var(--wave-line-bottom);
+  left: calc(var(--progress, 0) * 100%);
+  right: 0;
+  height: var(--wave-thickness);
+  border-radius: var(--radius-pill);
+  background: var(--wave-track);
+}
+
+/* Parte tocada: linha em destaque + camadas de onda. Só cresce até --progress (0 a 1). */
+.wave__played {
+  position: absolute;
+  bottom: var(--wave-line-bottom);
+  left: 0;
+  width: calc(var(--progress, 0) * 100%);
+  height: calc(var(--wave-height) + var(--wave-thickness));
+  overflow: hidden;
+  container-type: inline-size; /* permite medir a largura tocada em cqw */
+  --wave-cap-ratio: 22cqw; /* altura máxima do morro: 22% da largura já tocada */
+}
+
+.wave__played::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--wave-thickness);
+  border-radius: var(--radius-pill);
+  background: var(--theme-accent);
+}
+
+.wave__thumb {
+  position: absolute;
+  bottom: calc(var(--wave-line-bottom) + var(--wave-thickness) / 2);
+  left: calc(var(--progress, 0) * 100%);
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, 50%);
+  border-radius: 50%;
+  background: var(--color-text);
+  border: 5px solid var(--ring);
+  box-sizing: border-box;
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.progress__bar:hover .wave__thumb {
+  transform: translate(-50%, 50%) scale(1.15);
+}
+
+.progress__times {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-small);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Controles ---------- */
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-xs);
+}
+
+/* Aleatório e repetir: só o ícone, sem fundo. */
+.controls__plain {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  transition:
+    color var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.controls__plain:hover {
+  color: var(--color-text);
+  transform: scale(1.1);
+}
+
+.controls__plain:active {
+  transform: scale(0.9);
+}
+
+/* Anterior e próxima: círculos de cor sólida; o ícone dá um pulinho para o lado ao passar o mouse. */
+.controls__round {
+  display: grid;
+  place-items: center;
+  width: var(--btn-round-size);
+  height: var(--btn-round-size);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--color-text);
+  transition:
+    background var(--duration-fast),
+    transform var(--duration-fast) var(--ease-bounce);
+}
+
+.controls__round:hover {
+  background: var(--surface-hover);
+  transform: scale(1.06);
+}
+
+.controls__round:active {
+  transform: scale(0.93);
+}
+
+.controls__round .icon {
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+#previous-btn:hover .icon {
+  transform: translateX(-2px);
+}
+
+#next-btn:hover .icon {
+  transform: translateX(2px);
+}
+
+/* Play/pause é o destaque: cor da capa, sempre redondo. */
+.controls__round.play-btn {
+  width: var(--btn-play-size);
+  height: var(--btn-play-size);
+  background: var(--theme-accent);
+  color: var(--color-on-accent);
+  border-radius: var(--radius-play);
+  transition:
+    filter var(--duration-fast),
+    transform var(--duration-fast) var(--ease-bounce);
+}
+
+.controls__round.play-btn:hover {
+  background: var(--theme-accent);
+  filter: brightness(1.08);
+}
+
+/* Aleatório ligado e repetir em "contexto" ou "faixa" */
+#shuffle-btn.is-active,
+#repeat-btn[data-repeat='context'],
+#repeat-btn[data-repeat='track'] {
+  color: var(--color-active);
+}
+
+/* Um pontinho embaixo do ícone mostra que está ligado. */
+#shuffle-btn.is-active::before,
+#repeat-btn[data-repeat='context']::before,
+#repeat-btn[data-repeat='track']::before {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--theme-accent);
+}
+
+/* Repetir "faixa" mostra um 1 no canto do ícone */
+#repeat-btn[data-repeat='track']::after {
+  content: '1';
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+/* ---------- Botão play/pause (exemplo de animação) ----------
+   Os dois ícones ficam empilhados. Com .is-playing, o play gira e some
+   enquanto o pause cresce. Só usa transform + opacity (leve para a GPU).
+   Vale para o botão grande e o da tag. */
+
+.play-btn {
+  position: relative;
+}
+
+.play-btn__icon {
+  grid-area: 1 / 1;
+  transition:
+    transform var(--duration-play-toggle) var(--ease-bounce),
+    opacity var(--duration-play-toggle) var(--ease-standard);
+}
+
+.play-btn__icon--pause,
+.play-btn.is-playing .play-btn__icon--play {
+  opacity: 0;
+  transform: scale(0.3) rotate(-90deg);
+}
+
+.play-btn.is-playing .play-btn__icon--pause,
+.play-btn__icon--play {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+/* Spotify aberto sem sessão: só o play funciona até a música começar. */
+.player.is-idle #shuffle-btn,
+.player.is-idle #previous-btn,
+.player.is-idle #next-btn,
+.player.is-idle #repeat-btn,
+.player.is-idle .progress__bar,
+.player.is-idle .volume,
+.player.is-idle .tag__btn {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ---------- Modo tag (pílula mini) ---------- */
+
+.player[data-mode='tag'] {
+  background-color: color-mix(in srgb, var(--theme-bg) var(--tag-opacity), transparent);
+  height: 100%;
+  flex-direction: row;
+  align-items: center;
+  border-radius: var(--radius-tag);
+}
+
+.tag {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0 var(--space-lg);
+}
+
+.tag__cover {
+  width: var(--tag-cover-size);
+  height: var(--tag-cover-size);
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 50%; /* capa redonda, como no One UI */
+  background: var(--surface);
+}
+
+.tag__main {
+  position: relative; /* fica acima da onda */
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* Título e artista numa linha centralizada; se não couberem, o texto anda de um lado
+   para o outro (classe is-scrolling e --scroll-distance vêm do JS, que mede o texto). */
+.tag__line {
+  max-width: 100%;
+  font-size: var(--font-size-artist);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tag__text {
+  display: inline-block;
+}
+
+.tag__line.is-scrolling {
+  text-overflow: clip;
+}
+
+.tag__line.is-scrolling .tag__text {
+  animation: tag-marquee var(--duration-marquee) ease-in-out infinite alternate;
+}
+
+@keyframes tag-marquee {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(calc(-1 * var(--scroll-distance, 0px)));
+  }
+}
+
+.tag__title {
+  font-weight: 700;
+}
+
+.tag__artist {
+  color: var(--color-text-muted);
+}
+
+.tag__artist:not(:empty)::before {
+  content: ' · ';
+}
+
+.tag__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--tag-controls-gap);
+}
+
+.tag__btn .icon,
+.play-btn--tag .icon {
+  width: var(--tag-icon-size);
+  height: var(--tag-icon-size);
+}
+
+.tag__btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.tag__btn:hover {
+  transform: scale(1.12);
+}
+
+.tag__btn:active {
+  transform: scale(0.9);
+}
+
+.play-btn--tag {
+  display: grid;
+  place-items: center;
+  width: var(--tag-play-size);
+  height: var(--tag-play-size);
+  border-radius: var(--radius-pill);
+  transition: transform var(--duration-fast) var(--ease-bounce);
+}
+
+.play-btn--tag:hover {
+  transform: scale(1.08);
+}
+
+.play-btn--tag:active {
+  transform: scale(0.92);
+}
+
+/* Onda decorativa embaixo da pílula (como a do player do celular): cinco morros grandes e
+   translúcidos, cada um de uma cor da capa. Cada morro NASCE pequeno na esquerda, anda para a
+   direita crescendo até o meio, e volta a diminuir até sumir na direita. Como saem um atrás do
+   outro (atrasos diferentes) e em velocidades um pouco diferentes, eles se cruzam e as cores se
+   misturam, parecendo uma onda só. */
+.tag__wave {
+  --wave-height: var(--wave-amp-tag);
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: var(--tag-wave-width);
+  height: var(--tag-wave-height);
+  transform: translateX(-50%);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pulse {
+  --color: var(--theme-wave-1);
+  --peak: 1; /* altura máxima, de 0 a 1 */
+  --wide: 1; /* largura deste morro em relação a --pulse-width */
+  --duration: 5s; /* tempo para atravessar da esquerda para a direita */
+  --delay: 0s;
+  /* Altura real do morro. Nas ondas da janela ela é limitada pela largura da parte tocada
+     (--wave-cap), para o morro não ficar alto e fino quando a música está no começo. */
+  --h: min(var(--wave-height), var(--wave-cap, 9999px));
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--h);
+  background: var(--color);
+  opacity: var(--pulse-opacity);
+  -webkit-mask: var(--pulse-shape) no-repeat 50% 100% / calc(var(--pulse-width) * var(--wide)) 100%;
+  mask: var(--pulse-shape) no-repeat 50% 100% / calc(var(--pulse-width) * var(--wide)) 100%;
+  height: var(--h);
+  transform-origin: 50% 100%;
+  transform: translateX(-50%) scaleY(0.02);
+  will-change: transform; /* anima só na placa de vídeo: fica fluido */
+  animation: pulse-cross var(--duration) linear var(--delay) infinite paused;
+}
+
+.player.is-playing .pulse {
+  animation-play-state: running;
+}
+
+/* Na barra da janela os morros ficam sobre a linha, só na parte já tocada. */
+.wave__played .pulse {
+  --wave-cap: var(--wave-cap-ratio); /* ver .wave__played */
+  --pulse-width: 56%; /* na janela os morros são mais largos: se sobrepõem e não sobra vão */
+  bottom: calc(var(--wave-thickness) - 1px);
+}
+
+/* Cada morro tem personalidade: largura (--wide), altura (--peak), velocidade (--duration) e cor
+   próprias, como no vídeo de referência (uns largos e lentos, outros curtos e rápidos). */
+.pulse:nth-child(1) {
+  --color: var(--theme-wave-1);
+  --wide: 1.15;
+  --peak: 0.8;
+  --duration: 6.4s;
+  --delay: -1s;
+}
+
+.pulse:nth-child(2) {
+  --color: color-mix(in srgb, var(--theme-wave-2) 45%, white);
+  --wide: 0.65;
+  --peak: 0.6;
+  --duration: 3.7s;
+  --delay: -0.5s;
+}
+
+.pulse:nth-child(3) {
+  --color: var(--theme-wave-3);
+  --wide: 0.95;
+  --peak: 1;
+  --duration: 5.2s;
+  --delay: -3.2s;
+}
+
+.pulse:nth-child(4) {
+  --color: color-mix(in srgb, var(--theme-bg) 40%, white);
+  --wide: 0.8;
+  --peak: 0.5;
+  --duration: 4.3s;
+  --delay: -2.4s;
+}
+
+.pulse:nth-child(5) {
+  --color: var(--theme-wave-2);
+  --wide: 1.35;
+  --peak: 0.9;
+  --duration: 7.4s;
+  --delay: -5s;
+}
+
+/* O centro do morro vai da ponta esquerda (-50%) à direita (+50%). Ele nasce quase sem altura
+   na esquerda, é maior no meio e volta a ficar sem altura na direita; assim, mesmo cortado pela
+   borda da pista, o corte não aparece. Sem degradê nenhum. Só transform é animado (leve para o processador). */
+@keyframes pulse-cross {
+  0% {
+    transform: translateX(-50%) scaleY(0.02);
+  }
+  25% {
+    transform: translateX(-25%) scaleY(calc(var(--peak) * 0.6));
+  }
+  50% {
+    transform: translateX(0) scaleY(var(--peak));
+  }
+  75% {
+    transform: translateX(25%) scaleY(calc(var(--peak) * 0.6));
+  }
+  100% {
+    transform: translateX(50%) scaleY(0.02);
+  }
+}
+
+/* ---------- Mensagens: tela de status, banner e aviso rápido ---------- */
+
+.status {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  text-align: center;
+  background: var(--theme-bg);
+}
+
+.status__text {
+  font-size: var(--font-size-artist);
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  white-space: pre-line; /* quebras de linha das mensagens */
+}
+
+.status__action {
+  padding: 10px 24px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-on-light);
+  font-weight: 700;
+}
+
+/* Na tag a mensagem vira uma linha só, com o botão ao lado. */
+.player[data-mode='tag'] .status {
+  flex-direction: row;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+}
+
+.player[data-mode='tag'] .status__text {
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player[data-mode='tag'] .status__action {
+  padding: 6px 14px;
+  font-size: var(--font-size-small);
+  flex-shrink: 0;
+}
+
+.banner,
+.toast {
+  position: absolute;
+  left: 50%;
+  z-index: 3;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-small);
+  white-space: nowrap;
+}
+
+.banner {
+  top: var(--space-sm);
+  transform: translateX(-50%);
+  background: var(--color-banner-bg);
+}
+
+.toast {
+  bottom: var(--space-md);
+  background: var(--color-text);
+  color: var(--color-on-light);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 10px);
+  transition:
+    opacity var(--duration-fast),
+    transform var(--duration-fast) var(--ease-standard);
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Na tag não há espaço para avisos; os erros aparecem na janela normal. */
+.player[data-mode='tag'] .banner,
+.player[data-mode='tag'] .toast {
+  display: none;
+}
+
+/* ---------- Acessibilidade: sem animações para quem pede ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
