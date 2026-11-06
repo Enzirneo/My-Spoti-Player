@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { createRequestGuard } from '../../src/shared/request-guard.js';
 import {
   SpotifyError,
   getPlayback,
@@ -109,9 +110,9 @@ describe('curtidas', () => {
 });
 
 describe('tratamento de erros', () => {
-  async function failureOf(fetchMock) {
+  async function failureOf(fetchMock, guard = createRequestGuard()) {
     try {
-      await nextTrack({ token: 't', fetch: fetchMock });
+      await nextTrack({ token: 't', fetch: fetchMock, guard });
     } catch (error) {
       return error;
     }
@@ -137,6 +138,30 @@ describe('tratamento de erros', () => {
     const error = await failureOf(vi.fn().mockResolvedValue(response(429)));
     expect(error.kind).toBe('rate-limited');
     expect(error.retryAfterMs).toBe(30000);
+  });
+
+  it('depois de um 429, não chama a API até o bloqueio acabar', async () => {
+    const guard = createRequestGuard();
+    await failureOf(
+      vi.fn().mockResolvedValue(response(429, { headers: { 'retry-after': '60' } })),
+      guard
+    );
+
+    const fetchMock = vi.fn();
+    const error = await failureOf(fetchMock, guard);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(error.kind).toBe('rate-limited');
+    expect(error.retryAfterMs).toBeGreaterThan(59000);
+  });
+
+  it('segura pedidos acima do teto sem chamar a API', async () => {
+    const guard = createRequestGuard({ maxRequests: 1 });
+    const fetchMock = vi.fn().mockResolvedValue(response(204));
+    await failureOf(fetchMock, guard);
+    const error = await failureOf(fetchMock, guard);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(error.kind).toBe('rate-limited');
   });
 
   it('classifica 404 NO_ACTIVE_DEVICE como no-device', async () => {

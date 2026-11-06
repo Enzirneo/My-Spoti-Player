@@ -9,6 +9,7 @@ import {
   normalizePlayback,
   pollDelayMs,
 } from '../shared/state.js';
+import { backoffDelayMs } from '../shared/request-guard.js';
 import { positionFromClick, startProgressLoop } from './progress.js';
 import { enableWindowDrag } from './drag.js';
 import * as ui from './ui.js';
@@ -18,7 +19,6 @@ const { elements } = ui;
 
 const POLL_INTERVAL_MS = 1500;
 const POST_COMMAND_POLL_MS = 800; // a API demora um instante para refletir o comando
-const ERROR_BACKOFF_FACTOR = 2;
 const VOLUME_DEBOUNCE_MS = 150;
 const IDLE_REFRESH_MS = 2000; // quanto tempo reaproveitar a leitura do Spotify ocioso
 const START_GRACE_MS = 5000; // após dar play, ignora respostas "sem dispositivo" atrasadas
@@ -42,6 +42,7 @@ let statusAction = 'login'; // o que o botão da tela de status faz: 'login' | '
 let idleCache = null; // última leitura do dispositivo ocioso: { at, result }
 let ignoreNoDeviceUntil = 0;
 let commandVersion = 0; // muda a cada comando; descarta respostas de polling antigas
+let pollFailures = 0; // falhas seguidas, para o backoff
 let pollTimer = null;
 let volumeTimer = null;
 
@@ -70,6 +71,7 @@ async function fetchPlayback() {
   if (version !== commandVersion) return POST_COMMAND_POLL_MS;
   if (!result.ok) return handlePollError(result.error);
 
+  pollFailures = 0;
   ui.renderBanner(null);
   const next = normalizePlayback(result.data, Date.now());
   if (next.status === 'no-device') return handleNoDevice();
@@ -85,7 +87,8 @@ function handlePollError(error) {
   }
   ui.renderBanner(ERROR_MESSAGES[error.kind] ?? ERROR_MESSAGES.http);
   // Mantém o último estado na tela; só espera mais antes de tentar de novo.
-  return error.retryAfterMs || POLL_INTERVAL_MS * ERROR_BACKOFF_FACTOR;
+  pollFailures += 1;
+  return error.retryAfterMs || backoffDelayMs(pollFailures);
 }
 
 function applyPlayback(next) {

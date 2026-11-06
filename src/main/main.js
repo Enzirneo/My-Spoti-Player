@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { createTokenManager } from './auth.js';
 import { createDebugLog } from './debug-log.js';
 import { registerIpc } from './ipc.js';
+import { requestGuard } from '../shared/spotify.js';
 import { createStore } from './store.js';
 import { registerWindowDrag } from './window-drag.js';
 import { createWindowMode, NORMAL_MIN } from './window-mode.js';
@@ -98,6 +99,9 @@ function start() {
   const store = createStore({ filePath: join(app.getPath('userData'), 'store.json') });
   const clientId = readClientId();
   const tokens = createTokenManager({ store, clientId });
+  // O bloqueio do Spotify sobrevive a fechar e abrir o app; senão reabrir insistiria.
+  requestGuard.restore(store.get('rateLimitedUntil'));
+  requestGuard.listen((until) => store.set('rateLimitedUntil', until));
 
   debugLog = createDebugLog({
     filePath: join(app.getPath('userData'), 'debug.log'),
