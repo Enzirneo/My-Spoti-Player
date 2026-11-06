@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
   login: () => ipcRenderer.invoke('auth:login'),
   logout: () => ipcRenderer.invoke('auth:logout'),
   quitApp: () => ipcRenderer.invoke('window:quit'),
+  notifyContentReady: () => ipcRenderer.send('window:content-ready'),
   getWindowMode: () => ipcRenderer.invoke('window:get-mode'),
   setWindowMode: (mode) => ipcRenderer.invoke('window:set-mode', mode),
   startWindowDrag: (mouse) => ipcRenderer.send('window:drag-start', mouse),

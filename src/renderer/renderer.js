@@ -356,6 +356,7 @@ async function showLastPlayback() {
 }
 
 async function init() {
+  elements.player.classList.add('is-booting'); // sem animações no primeiro desenho
   bindEvents();
   // Na tag, clicar em qualquer área livre (sem arrastar) abre a janela normal.
   enableWindowDrag(elements.player, api, {
@@ -367,6 +368,9 @@ async function init() {
   ui.renderMode(new URLSearchParams(location.search).get('mode') ?? 'normal');
   ui.renderMode(await api.getWindowMode());
   await showLastPlayback();
+  await ui.waitForCover();
+  api.notifyContentReady(); // o main só mostra a janela agora, já com a capa
+  ui.startAnimations();
   startProgressLoop({
     getState: () => playback,
     onFrame: (progressMs) => ui.renderProgress(progressMs, playback.track.durationMs),
