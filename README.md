@@ -56,6 +56,15 @@ controle: uma janelinha (ou uma pílula ainda menor) que fica por cima de tudo, 
 - App do Spotify instalado
 - Conta **Spotify Premium** (a Web API só deixa controlar a reprodução com Premium)
 
+## macOS
+
+No Mac o app controla o Spotify **localmente**, via AppleScript: não precisa de Client ID,
+login nem Premium, e não tem limite de requisições. É só `npm install` e `npm start`.
+Na primeira vez o macOS pergunta se o app pode controlar o Spotify: permita (ou em
+Ajustes do Sistema > Privacidade e Segurança > Automação). Nesse modo o botão de curtir fica
+desligado, porque curtir depende da conta (Web API). Os passos de Client ID abaixo valem
+só para o Windows.
+
 ## Instalação
 
 ### 1. Criar o app no Spotify e pegar o Client ID

@@ -12,6 +12,7 @@ import {
 import { waitForAuthCode } from './callback-server.js';
 import { describeDevices, describeIdle, describePlayback } from './debug-describe.js';
 import { createIdleResolver } from './idle.js';
+import { createLocalSpotify } from './local-spotify.js';
 import { readSpotifyMediaSession } from './media-session.js';
 import { launchSpotify } from './wake.js';
 
@@ -34,6 +35,10 @@ const COMMANDS = {
   setTrackLiked: spotify.setTrackLiked,
 };
 
+function createLocalIfMac() {
+  return IS_LOCAL_MODE ? createLocalSpotify() : null;
+}
+
 function toErrorResult(error) {
   const kind = error.kind ?? 'network';
   return {
@@ -42,7 +47,10 @@ function toErrorResult(error) {
   };
 }
 
-export function registerIpc({ tokens, clientId, debugLog }) {
+// No macOS o app controla o Spotify localmente (sem login nem Web API); no Windows, pela API.
+const IS_LOCAL_MODE = process.platform === 'darwin';
+
+export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfMac() }) {
   async function callWithToken(command, payload, { forceRefresh = false } = {}) {
     const token = await tokens.getAccessToken({ forceRefresh });
     if (!token)
@@ -88,6 +96,21 @@ export function registerIpc({ tokens, clientId, debugLog }) {
     return result;
   }
 
+  async function callLocal(name, payload) {
+    try {
+      const data = await local.call(name, payload);
+      if (name === 'getPlayback') {
+        debugLog.writeIfChanged('player', describePlayback(data));
+      } else if (name !== 'isTrackLiked') {
+        debugLog.write(`[comando] ${name} ok`);
+      }
+      return { ok: true, data };
+    } catch (error) {
+      debugLog.writeIfChanged(`erro:${name}`, `${error.kind ?? ''} ${error.message}`);
+      return toErrorResult(error);
+    }
+  }
+
   async function login() {
     const { verifier, challenge } = generatePkcePair();
     const state = generateState();
@@ -99,10 +122,11 @@ export function registerIpc({ tokens, clientId, debugLog }) {
     tokens.saveTokens(await exchangeCodeForTokens({ clientId, code, verifier }));
   }
 
-  ipcMain.handle('auth:status', () => ({
-    hasClientId: Boolean(clientId),
-    isLoggedIn: tokens.isLoggedIn(),
-  }));
+  ipcMain.handle('auth:status', () =>
+    local
+      ? { hasClientId: true, isLoggedIn: true }
+      : { hasClientId: Boolean(clientId), isLoggedIn: tokens.isLoggedIn() }
+  );
 
   ipcMain.handle('auth:login', async () => {
     try {
@@ -117,6 +141,11 @@ export function registerIpc({ tokens, clientId, debugLog }) {
 
   ipcMain.handle('spotify:launch', async () => {
     try {
+      if (local) {
+        debugLog.write('[launch] abrindo o Spotify (modo local)');
+        await local.launch();
+        return { ok: true };
+      }
       await launchSpotify({
         getDevices: listDevices,
         launch: () => {
@@ -139,6 +168,8 @@ export function registerIpc({ tokens, clientId, debugLog }) {
   });
 
   ipcMain.handle('spotify:idle', async () => {
+    // Modo local: o Spotify fechado já aparece como "sem dispositivo"; não há o que resolver.
+    if (local) return { ok: true, data: null };
     try {
       const idle = await resolveIdle();
       debugLog.writeIfChanged('ocioso', describeIdle(idle));
@@ -151,6 +182,7 @@ export function registerIpc({ tokens, clientId, debugLog }) {
 
   ipcMain.handle('spotify:call', (_event, name, payload = {}) => {
     const command = COMMANDS[name];
+    if (local) return callLocal(name, payload);
     if (!command)
       return { ok: false, error: { kind: 'http', message: `unknown_command` } };
     return callAndLog(name, command, payload);
