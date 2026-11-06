@@ -7,6 +7,7 @@ import {
   nextRepeatMode,
   normalizeIdle,
   normalizePlayback,
+  pollDelayMs,
 } from '../shared/state.js';
 import { positionFromClick, startProgressLoop } from './progress.js';
 import { enableWindowDrag } from './drag.js';
@@ -74,7 +75,7 @@ async function fetchPlayback() {
   if (next.status === 'no-device') return handleNoDevice();
   idleCache = null;
   applyPlayback(next);
-  return POLL_INTERVAL_MS;
+  return pollDelayMs(next);
 }
 
 function handlePollError(error) {
@@ -124,8 +125,9 @@ async function handleNoDevice() {
   if (!idle.ok) return handlePollError(idle.error);
   if (!idle.data) return showSpotifyClosed();
 
-  applyIdle(normalizeIdle(idle.data, Date.now()));
-  return POLL_INTERVAL_MS;
+  const idleState = normalizeIdle(idle.data, Date.now());
+  applyIdle(idleState);
+  return pollDelayMs(idleState);
 }
 
 /** Spotify aberto sem sessão: mostra a música que ele tem carregada, ou só o botão "Tocar". */
@@ -148,7 +150,7 @@ function showSpotifyClosed() {
     statusAction = 'launch';
     ui.renderStatus('no-device', { actionLabel: 'Abrir Spotify' });
   }
-  return POLL_INTERVAL_MS;
+  return pollDelayMs(playback);
 }
 
 /** Abre o app do Spotify e espera ele aparecer como dispositivo. */

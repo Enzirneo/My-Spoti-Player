@@ -5,6 +5,7 @@ import {
   matchSearchResult,
   applyOptimistic,
   nextRepeatMode,
+  pollDelayMs,
 } from '../../src/shared/state.js';
 
 const apiTrack = {
@@ -170,5 +171,21 @@ describe('normalizeIdle', () => {
       shareUrl: 'https://open.spotify.com/track/t1',
       isLikeable: true,
     });
+  });
+});
+
+describe('pollDelayMs', () => {
+  it('consulta mais devagar quanto menos está acontecendo', () => {
+    const playing = pollDelayMs({ status: 'ready', isPlaying: true });
+    const paused = pollDelayMs({ status: 'ready', isPlaying: false });
+    const idle = pollDelayMs({ status: 'idle' });
+    expect(playing).toBeLessThan(paused);
+    expect(paused).toBeLessThan(idle);
+  });
+
+  it('trata sem dispositivo e sessão vazia como ociosos', () => {
+    const idle = pollDelayMs({ status: 'idle' });
+    expect(pollDelayMs({ status: 'no-device' })).toBe(idle);
+    expect(pollDelayMs({ status: 'empty' })).toBe(idle);
   });
 });
