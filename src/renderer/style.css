@@ -86,7 +86,6 @@
   --duration-reveal: 220ms; /* botões que aparecem ao passar o mouse */
   --duration-play-toggle: 280ms; /* troca play/pause */
   --duration-track-change: 700ms; /* troca de música (capa, texto e cor) */
-  --duration-mode-change: 320ms; /* janela <-> tag */
   --duration-marquee: 6s; /* texto da tag andando (ida e volta) */
   --duration-wave: 1.1s; /* uma volta da onda (menor = mais rápida) */
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -182,21 +181,12 @@ button {
   display: none;
 }
 
-/* ANIMAÇÃO: o conteúdo "brota" ao trocar de modo (a janela redimensiona na hora). */
-.player[data-mode='normal'] .full,
-.player[data-mode='tag'] .tag {
-  animation: mode-enter var(--duration-mode-change) var(--ease-standard);
-}
-
-@keyframes mode-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* Janela recém-aberta (troca de modo): as animações de troca de música não devem tocar
+   no primeiro desenho; senão a capa, o texto e a cor "chegam" depois da janela. */
+.player.is-booting,
+.player.is-booting * {
+  transition: none !important;
+  animation: none !important;
 }
 
 /* ---------- Modo normal ---------- */

@@ -69,8 +69,18 @@ function createWindow(mode, bounds) {
 
   watchWindowHealth(window);
   window.loadFile(join(APP_ROOT, 'src', 'renderer', 'index.html'), { query: { mode } });
-  window.once('ready-to-show', () => window.show());
+  // A janela só aparece quando a tela diz que está pronta (capa carregada); o timer evita
+  // que ela fique escondida para sempre se algo falhar.
+  window.once('ready-to-show', () =>
+    setTimeout(() => showIfHidden(window), SHOW_FALLBACK_MS)
+  );
   return window;
+}
+
+const SHOW_FALLBACK_MS = 1500;
+
+function showIfHidden(window) {
+  if (!window.isDestroyed() && !window.isVisible()) window.show();
 }
 
 function toggleWindow() {
@@ -111,6 +121,10 @@ function start() {
     debugLog.write(`[processo] ${details.type} caiu (${details.reason})`)
   );
   ipcMain.handle('window:quit', () => app.quit());
+  ipcMain.on('window:content-ready', (event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window) showIfHidden(window);
+  });
   registerWindowDrag(() => windowMode.getWindow());
   windowMode = createWindowMode({ store, createWindow });
   ipcMain.handle('window:get-mode', () => windowMode.getMode());
