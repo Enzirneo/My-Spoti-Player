@@ -1,6 +1,6 @@
 {
   "name": "my-spoti-player",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mini player personalizado do Spotify (controle visual via Web API)",
   "private": true,
   "type": "module",
