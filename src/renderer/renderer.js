@@ -313,8 +313,10 @@ async function login() {
   ui.showToast('Login não concluído');
 }
 
+// Não redesenha esta janela no modo novo: o main abre outra janela para ele, e esta aqui
+// continua na tela até a nova aparecer (redesenhar a esticaria no tamanho errado).
 async function changeWindowMode(mode) {
-  ui.renderMode(await api.setWindowMode(mode));
+  await api.setWindowMode(mode);
 }
 
 function bindEvents() {
@@ -349,7 +351,14 @@ function bindEvents() {
   );
 }
 
+/** Janela nova (troca de modo): mostra já a última música lida, em vez de "Carregando…". */
+async function showLastPlayback() {
+  const { data } = await api.getLastPlayback();
+  if (data) applyPlayback(normalizePlayback(data.playback, data.at));
+}
+
 async function init() {
+  elements.player.classList.add('is-booting'); // sem animações no primeiro desenho
   bindEvents();
   // Na tag, clicar em qualquer área livre (sem arrastar) abre a janela normal.
   enableWindowDrag(elements.player, api, {
@@ -360,6 +369,10 @@ async function init() {
   // O main abre uma janela por modo e diz qual na URL, assim a tela já nasce no modo certo.
   ui.renderMode(new URLSearchParams(location.search).get('mode') ?? 'normal');
   ui.renderMode(await api.getWindowMode());
+  await showLastPlayback();
+  await ui.waitForCover();
+  api.notifyContentReady(); // o main só mostra a janela agora, já com a capa
+  ui.startAnimations();
   startProgressLoop({
     getState: () => playback,
     onFrame: (progressMs) => ui.renderProgress(progressMs, playback.track.durationMs),

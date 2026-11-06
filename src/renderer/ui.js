@@ -56,6 +56,7 @@ export const elements = {
 };
 
 let visibleCoverIndex = -1;
+let coverReady = Promise.resolve(); // resolve quando a capa atual terminou de carregar
 let toastTimer = null;
 
 /** Mostra a capa nova: crossfade na capa de fundo e miniatura da tag. */
@@ -64,18 +65,33 @@ function showCover(url) {
   const nextCover = elements.covers[nextIndex];
   const preloader = new Image();
   preloader.crossOrigin = 'anonymous'; // sem isso o navegador não deixa ler as cores da capa
-  preloader.onload = () => {
-    nextCover.src = url;
-    elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
-    nextCover.classList.add('is-visible');
-    visibleCoverIndex = nextIndex;
-    elements.tagCover.src = url;
-    applyTheme(loadTheme(preloader));
-  };
+  coverReady = new Promise((resolve) => {
+    preloader.onload = () => {
+      nextCover.src = url;
+      elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
+      nextCover.classList.add('is-visible');
+      visibleCoverIndex = nextIndex;
+      elements.tagCover.src = url;
+      applyTheme(loadTheme(preloader));
+      resolve();
+    };
+    preloader.onerror = resolve; // sem capa a janela abre mesmo assim
+  });
   preloader.src = url;
 }
 
+/** Espera a capa atual carregar (para a janela só aparecer com tudo no lugar). */
+export const waitForCover = () => coverReady;
+
+/** Liga as animações depois do primeiro desenho da janela (ver `.is-booting` no CSS). */
+export function startAnimations() {
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => elements.player.classList.remove('is-booting'))
+  );
+}
+
 function clearCover() {
+  coverReady = Promise.resolve();
   elements.covers[visibleCoverIndex]?.classList.remove('is-visible');
   elements.tagCover.removeAttribute('src');
   applyTheme(null);

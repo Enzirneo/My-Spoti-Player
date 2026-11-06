@@ -55,6 +55,9 @@ const IS_LOCAL_MODE = process.platform === 'darwin';
 const IS_HYBRID_MODE = process.platform === 'win32';
 
 export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfMac() }) {
+  // Último estado lido: a janela nova (troca de modo) já nasce com a música na tela.
+  let lastPlayback = null;
+
   async function callWithToken(command, payload, { forceRefresh = false } = {}) {
     const token = await tokens.getAccessToken({ forceRefresh });
     if (!token)
@@ -85,6 +88,10 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
   }
 
   /** Executa o comando e registra no log o que importa (só mudanças e erros). */
+  function remember(playback) {
+    if (playback) lastPlayback = { at: Date.now(), playback };
+  }
+
   async function callAndLog(name, command, payload) {
     const result = await callWithToken(command, payload);
     if (!result.ok) {
@@ -94,6 +101,7 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
       );
     } else if (name === 'getPlayback') {
       debugLog.writeIfChanged('player', describePlayback(result.data));
+      remember(result.data);
     } else {
       debugLog.write(`[comando] ${name} ok`);
     }
@@ -105,6 +113,7 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
       const data = await provider.call(name, payload);
       if (name === 'getPlayback') {
         debugLog.writeIfChanged('player', describePlayback(data));
+        remember(data);
       } else if (name !== 'isTrackLiked') {
         debugLog.write(`[comando] ${name} ok`);
       }
@@ -155,6 +164,8 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
       return { ok: false, error: { kind: 'login-failed', message: error.message } };
     }
   });
+
+  ipcMain.handle('spotify:last-playback', () => ({ ok: true, data: lastPlayback }));
 
   ipcMain.handle('auth:logout', () => tokens.clearTokens());
 
