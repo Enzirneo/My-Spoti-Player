@@ -11,4 +11,4 @@ done
 cp assets/icon.png "$iconset/icon_512x512.png"
 iconutil -c icns "$iconset" -o dist/icon.icns
 npx electron-packager . "My Spoti Player" --platform=darwin --out=dist --overwrite \
-  --icon=dist/icon.icns --ignore='^/(dist|docs|tests|scripts)($|/)'
+  --icon=dist/icon.icns --extend-info=scripts/Info.extra.plist --ignore='^/(dist|docs|tests|scripts)($|/)'
