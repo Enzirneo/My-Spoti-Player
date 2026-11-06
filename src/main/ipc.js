@@ -12,8 +12,9 @@ import {
 import { waitForAuthCode } from './callback-server.js';
 import { describeDevices, describeIdle, describePlayback } from './debug-describe.js';
 import { createIdleResolver } from './idle.js';
+import { createHybridSpotify } from './hybrid-spotify.js';
 import { createLocalSpotify } from './local-spotify.js';
-import { readSpotifyMediaSession } from './media-session.js';
+import { controlSpotifyMedia, readSpotifyMediaSession } from './media-session.js';
 import { launchSpotify } from './wake.js';
 
 // Protocolo registrado pelo app do Spotify no Windows.
@@ -47,8 +48,11 @@ function toErrorResult(error) {
   };
 }
 
-// No macOS o app controla o Spotify localmente (sem login nem Web API); no Windows, pela API.
+// macOS: controla o Spotify localmente, sem login nem Web API.
+// Windows: híbrido, com o estado vindo do sistema e a Web API só para o que ele não dá.
+// Outros sistemas: só Web API.
 const IS_LOCAL_MODE = process.platform === 'darwin';
+const IS_HYBRID_MODE = process.platform === 'win32';
 
 export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfMac() }) {
   async function callWithToken(command, payload, { forceRefresh = false } = {}) {
@@ -96,9 +100,9 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
     return result;
   }
 
-  async function callLocal(name, payload) {
+  async function callProvider(provider, name, payload) {
     try {
-      const data = await local.call(name, payload);
+      const data = await provider.call(name, payload);
       if (name === 'getPlayback') {
         debugLog.writeIfChanged('player', describePlayback(data));
       } else if (name !== 'isTrackLiked') {
@@ -110,6 +114,21 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
       return toErrorResult(error);
     }
   }
+
+  // Windows: o híbrido pede à API só o que precisa, pelo mesmo caminho dos comandos normais.
+  const hybrid = IS_HYBRID_MODE
+    ? createHybridSpotify({
+        api: {
+          call: (name, payload) => {
+            if (!COMMANDS[name])
+              throw Object.assign(new Error('unknown_command'), { kind: 'http' });
+            return callOrThrow(COMMANDS[name], payload);
+          },
+        },
+        readMedia: readSpotifyMediaSession,
+        controlMedia: controlSpotifyMedia,
+      })
+    : null;
 
   async function login() {
     const { verifier, challenge } = generatePkcePair();
@@ -182,7 +201,8 @@ export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfM
 
   ipcMain.handle('spotify:call', (_event, name, payload = {}) => {
     const command = COMMANDS[name];
-    if (local) return callLocal(name, payload);
+    const provider = local ?? hybrid;
+    if (provider) return callProvider(provider, name, payload);
     if (!command)
       return { ok: false, error: { kind: 'http', message: `unknown_command` } };
     return callAndLog(name, command, payload);

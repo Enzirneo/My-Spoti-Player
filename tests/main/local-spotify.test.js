@@ -50,7 +50,10 @@ describe('parseLocalPlayback', () => {
   });
 
   it('marca repeat como context quando a repetição está ligada', () => {
-    const repeating = playing.replace(`${SEP}false${SEP}spotify`, `${SEP}true${SEP}spotify`);
+    const repeating = playing.replace(
+      `${SEP}false${SEP}spotify`,
+      `${SEP}true${SEP}spotify`
+    );
     expect(parseLocalPlayback(repeating).repeat_state).toBe('context');
   });
 
