@@ -313,8 +313,10 @@ async function login() {
   ui.showToast('Login não concluído');
 }
 
+// Não redesenha esta janela no modo novo: o main abre outra janela para ele, e esta aqui
+// continua na tela até a nova aparecer (redesenhar a esticaria no tamanho errado).
 async function changeWindowMode(mode) {
-  ui.renderMode(await api.setWindowMode(mode));
+  await api.setWindowMode(mode);
 }
 
 function bindEvents() {
