@@ -6,3 +6,4 @@ config.json
 .env
 Thumbs.db
 .vscode/
+.DS_Store
