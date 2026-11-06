@@ -2,6 +2,10 @@
 // Estado "status": 'ready' | 'empty' (sessão sem música) | 'idle' (Spotify aberto sem
 // sessão) | 'no-device' (Spotify fechado).
 
+const PLAYING_POLL_MS = 3000;
+const PAUSED_POLL_MS = 6000;
+const IDLE_POLL_MS = 10000;
+
 const REPEAT_CYCLE = ['off', 'context', 'track'];
 
 export function nextRepeatMode(currentMode) {
@@ -107,6 +111,12 @@ export function normalizeIdle({ device, media, found }, receivedAt) {
     deviceId: device.id,
     track: found ? normalizeTrack(found) : trackFromMedia(media),
   };
+}
+
+/** Em quanto tempo consultar a API de novo: menos vezes quanto menos está acontecendo. */
+export function pollDelayMs(state) {
+  if (state.status !== 'ready') return IDLE_POLL_MS;
+  return state.isPlaying ? PLAYING_POLL_MS : PAUSED_POLL_MS;
 }
 
 /**
