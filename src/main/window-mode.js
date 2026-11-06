@@ -4,6 +4,7 @@
 // Cada modo lembra a própria posição; o usuário pode mover os dois.
 import { screen } from 'electron';
 import { restoreBounds, restoreTagBounds } from './window-bounds.js';
+import { crossfade } from './window-fade.js';
 
 const NORMAL_DEFAULT_SIZE = { width: 320, height: 400 };
 const NORMAL_MIN_SIZE = { width: 260, height: 340 };
@@ -36,6 +37,7 @@ export function createWindowMode({ store, createWindow }) {
   let mode = 'normal';
   let saveTimer = null;
   let window = null;
+  let fade = null; // troca em andamento (ver window-fade.js)
 
   function saveCurrentPosition() {
     if (mode === 'normal') {
@@ -84,15 +86,27 @@ export function createWindowMode({ store, createWindow }) {
     getWindow: () => window,
     setMode(nextMode) {
       if (nextMode === mode) return mode;
+      fade?.finish(); // trocou de novo no meio do fade: fecha a janela velha agora
       // Guarda onde o modo atual estava antes de trocar.
       clearTimeout(saveTimer);
       saveCurrentPosition();
       const bounds = boundsFor(nextMode);
       const previous = window;
       mode = nextMode;
-      window = open(mode, bounds);
-      // A janela antiga só some quando a nova já está na tela (sem piscar).
-      window.once('show', () => previous.destroy());
+      const next = open(mode, bounds);
+      window = next;
+      next.setOpacity(0); // invisível até o fade começar, para não piscar ao abrir
+      // A antiga só some quando a nova já está na tela, com um fade curto entre as duas.
+      next.once('show', () => {
+        fade = crossfade({
+          from: previous,
+          to: next,
+          onDone: () => {
+            fade = null;
+            if (!previous.isDestroyed()) previous.destroy();
+          },
+        });
+      });
       return mode;
     },
   };
