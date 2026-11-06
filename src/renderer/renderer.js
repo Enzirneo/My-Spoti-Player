@@ -349,6 +349,12 @@ function bindEvents() {
   );
 }
 
+/** Janela nova (troca de modo): mostra já a última música lida, em vez de "Carregando…". */
+async function showLastPlayback() {
+  const { data } = await api.getLastPlayback();
+  if (data) applyPlayback(normalizePlayback(data.playback, data.at));
+}
+
 async function init() {
   bindEvents();
   // Na tag, clicar em qualquer área livre (sem arrastar) abre a janela normal.
@@ -360,6 +366,7 @@ async function init() {
   // O main abre uma janela por modo e diz qual na URL, assim a tela já nasce no modo certo.
   ui.renderMode(new URLSearchParams(location.search).get('mode') ?? 'normal');
   ui.renderMode(await api.getWindowMode());
+  await showLastPlayback();
   startProgressLoop({
     getState: () => playback,
     onFrame: (progressMs) => ui.renderProgress(progressMs, playback.track.durationMs),

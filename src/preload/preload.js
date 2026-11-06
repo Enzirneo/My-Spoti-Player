@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   endWindowDrag: () => ipcRenderer.send('window:drag-end'),
 
   launchSpotify: () => ipcRenderer.invoke('spotify:launch'),
+  getLastPlayback: () => ipcRenderer.invoke('spotify:last-playback'),
   getIdleSession: () => ipcRenderer.invoke('spotify:idle'),
 
   getPlayback: () => call('getPlayback'),
