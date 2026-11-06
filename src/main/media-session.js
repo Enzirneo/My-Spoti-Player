@@ -16,10 +16,7 @@ export function parseMediaSession(stdout) {
   }
 }
 
-export function readSpotifyMediaSession({
-  execFile = nodeExecFile,
-  scriptPath = SCRIPT_PATH,
-} = {}) {
+function runScript({ execFile, scriptPath, scriptArgs = [] }) {
   const args = [
     '-NoProfile',
     '-NonInteractive',
@@ -27,14 +24,37 @@ export function readSpotifyMediaSession({
     'Bypass',
     '-File',
     scriptPath,
+    ...scriptArgs,
   ];
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     execFile(
       'powershell.exe',
       args,
       { timeout: SCRIPT_TIMEOUT_MS, windowsHide: true, encoding: 'utf-8' },
-      // Qualquer falha vira "sem sessão": o app continua funcionando só com a API.
-      (error, stdout) => resolve(error ? null : parseMediaSession(stdout))
+      (error, stdout) => (error ? reject(error) : resolve(stdout))
     );
   });
+}
+
+export async function readSpotifyMediaSession({
+  execFile = nodeExecFile,
+  scriptPath = SCRIPT_PATH,
+} = {}) {
+  try {
+    return parseMediaSession(await runScript({ execFile, scriptPath }));
+  } catch {
+    // Qualquer falha vira "sem sessão": o app continua funcionando só com a API.
+    return null;
+  }
+}
+
+/** Manda play, pause, next, previous ou seek ao Spotify pelo Windows. Lança se ele recusar. */
+export async function controlSpotifyMedia(
+  action,
+  { positionMs = 0 } = {},
+  { execFile = nodeExecFile, scriptPath = SCRIPT_PATH } = {}
+) {
+  const scriptArgs = ['-Action', action];
+  if (action === 'seek') scriptArgs.push('-PositionMs', String(Math.round(positionMs)));
+  await runScript({ execFile, scriptPath, scriptArgs });
 }
