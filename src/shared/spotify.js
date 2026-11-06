@@ -1,9 +1,16 @@
 // Chamadas à Web API do Spotify. Sem Electron e sem DOM: o token e o fetch
 // são injetados, o que deixa tudo testável com mocks.
 
+import { createRequestGuard } from './request-guard.js';
+
 export const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 const MS_PER_SECOND = 1000;
+// Sem Retry-After, insistir logo só prolonga o bloqueio do Spotify.
+const DEFAULT_RETRY_AFTER_SECONDS = 30;
 const MAX_VOLUME = 100;
+
+// Freio único do app: todo pedido passa por ele, então um 429 para tudo, não só o polling.
+export const requestGuard = createRequestGuard();
 
 /** Erro com `kind` estável para a UI decidir o que mostrar. */
 export class SpotifyError extends Error {
@@ -26,15 +33,15 @@ async function readErrorReason(response) {
   }
 }
 
-async function toSpotifyError(response) {
+async function toSpotifyError(response, guard) {
   const { status } = response;
   if (status === 401) return new SpotifyError('unauthorized', { status });
   if (status === 429) {
-    const retryAfterSeconds = Number(response.headers.get('retry-after')) || 1;
-    return new SpotifyError('rate-limited', {
-      status,
-      retryAfterMs: retryAfterSeconds * MS_PER_SECOND,
-    });
+    const retryAfterSeconds =
+      Number(response.headers.get('retry-after')) || DEFAULT_RETRY_AFTER_SECONDS;
+    const retryAfterMs = retryAfterSeconds * MS_PER_SECOND;
+    guard.block(retryAfterMs);
+    return new SpotifyError('rate-limited', { status, retryAfterMs });
   }
 
   const reason = await readErrorReason(response);
@@ -44,7 +51,22 @@ async function toSpotifyError(response) {
   return new SpotifyError('http', { status, message: `HTTP ${status}` });
 }
 
-async function request({ token, fetch = globalThis.fetch, method = 'GET', path, body }) {
+async function request({
+  token,
+  fetch = globalThis.fetch,
+  guard = requestGuard,
+  method = 'GET',
+  path,
+  body,
+}) {
+  const waitMs = guard.acquire();
+  if (waitMs > 0) {
+    throw new SpotifyError('rate-limited', {
+      retryAfterMs: waitMs,
+      message: 'throttled',
+    });
+  }
+
   const headers = { Authorization: `Bearer ${token}` };
   if (body) headers['Content-Type'] = 'application/json';
 
@@ -58,7 +80,7 @@ async function request({ token, fetch = globalThis.fetch, method = 'GET', path, 
   } catch (cause) {
     throw new SpotifyError('network', { message: cause.message });
   }
-  if (!response.ok) throw await toSpotifyError(response);
+  if (!response.ok) throw await toSpotifyError(response, guard);
   return response;
 }
 

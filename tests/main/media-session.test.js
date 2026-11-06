@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   parseMediaSession,
   readSpotifyMediaSession,
+  controlSpotifyMedia,
 } from '../../src/main/media-session.js';
 
 const json = JSON.stringify({
@@ -51,5 +52,37 @@ describe('readSpotifyMediaSession', () => {
   it('devolve null (sem lançar) se o PowerShell falhar', async () => {
     const execFile = vi.fn((_cmd, _args, _opts, callback) => callback(new Error('boom')));
     expect(await readSpotifyMediaSession({ execFile, scriptPath: 'x.ps1' })).toBeNull();
+  });
+});
+
+describe('controlSpotifyMedia', () => {
+  it('passa a ação ao script', async () => {
+    const execFile = vi.fn((_cmd, _args, _opts, callback) => callback(null, 'ok'));
+    await controlSpotifyMedia('next', {}, { execFile, scriptPath: 'x.ps1' });
+    expect(execFile.mock.calls[0][1]).toEqual(
+      expect.arrayContaining(['-Action', 'next'])
+    );
+  });
+
+  it('seek leva a posição em ms, arredondada', async () => {
+    const execFile = vi.fn((_cmd, _args, _opts, callback) => callback(null, 'ok'));
+    await controlSpotifyMedia(
+      'seek',
+      { positionMs: 1234.6 },
+      { execFile, scriptPath: 'x' }
+    );
+    expect(execFile.mock.calls[0][1].slice(-4)).toEqual([
+      '-Action',
+      'seek',
+      '-PositionMs',
+      '1235',
+    ]);
+  });
+
+  it('lança se o PowerShell falhar (o Spotify recusou)', async () => {
+    const execFile = vi.fn((_cmd, _args, _opts, callback) => callback(new Error('boom')));
+    await expect(
+      controlSpotifyMedia('pause', {}, { execFile, scriptPath: 'x.ps1' })
+    ).rejects.toThrow('boom');
   });
 });

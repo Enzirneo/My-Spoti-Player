@@ -12,7 +12,9 @@ import {
 import { waitForAuthCode } from './callback-server.js';
 import { describeDevices, describeIdle, describePlayback } from './debug-describe.js';
 import { createIdleResolver } from './idle.js';
-import { readSpotifyMediaSession } from './media-session.js';
+import { createHybridSpotify } from './hybrid-spotify.js';
+import { createLocalSpotify } from './local-spotify.js';
+import { controlSpotifyMedia, readSpotifyMediaSession } from './media-session.js';
 import { launchSpotify } from './wake.js';
 
 // Protocolo registrado pelo app do Spotify no Windows.
@@ -34,6 +36,10 @@ const COMMANDS = {
   setTrackLiked: spotify.setTrackLiked,
 };
 
+function createLocalIfMac() {
+  return IS_LOCAL_MODE ? createLocalSpotify() : null;
+}
+
 function toErrorResult(error) {
   const kind = error.kind ?? 'network';
   return {
@@ -42,7 +48,13 @@ function toErrorResult(error) {
   };
 }
 
-export function registerIpc({ tokens, clientId, debugLog }) {
+// macOS: controla o Spotify localmente, sem login nem Web API.
+// Windows: híbrido, com o estado vindo do sistema e a Web API só para o que ele não dá.
+// Outros sistemas: só Web API.
+const IS_LOCAL_MODE = process.platform === 'darwin';
+const IS_HYBRID_MODE = process.platform === 'win32';
+
+export function registerIpc({ tokens, clientId, debugLog, local = createLocalIfMac() }) {
   async function callWithToken(command, payload, { forceRefresh = false } = {}) {
     const token = await tokens.getAccessToken({ forceRefresh });
     if (!token)
@@ -88,6 +100,36 @@ export function registerIpc({ tokens, clientId, debugLog }) {
     return result;
   }
 
+  async function callProvider(provider, name, payload) {
+    try {
+      const data = await provider.call(name, payload);
+      if (name === 'getPlayback') {
+        debugLog.writeIfChanged('player', describePlayback(data));
+      } else if (name !== 'isTrackLiked') {
+        debugLog.write(`[comando] ${name} ok`);
+      }
+      return { ok: true, data };
+    } catch (error) {
+      debugLog.writeIfChanged(`erro:${name}`, `${error.kind ?? ''} ${error.message}`);
+      return toErrorResult(error);
+    }
+  }
+
+  // Windows: o híbrido pede à API só o que precisa, pelo mesmo caminho dos comandos normais.
+  const hybrid = IS_HYBRID_MODE
+    ? createHybridSpotify({
+        api: {
+          call: (name, payload) => {
+            if (!COMMANDS[name])
+              throw Object.assign(new Error('unknown_command'), { kind: 'http' });
+            return callOrThrow(COMMANDS[name], payload);
+          },
+        },
+        readMedia: readSpotifyMediaSession,
+        controlMedia: controlSpotifyMedia,
+      })
+    : null;
+
   async function login() {
     const { verifier, challenge } = generatePkcePair();
     const state = generateState();
@@ -99,10 +141,11 @@ export function registerIpc({ tokens, clientId, debugLog }) {
     tokens.saveTokens(await exchangeCodeForTokens({ clientId, code, verifier }));
   }
 
-  ipcMain.handle('auth:status', () => ({
-    hasClientId: Boolean(clientId),
-    isLoggedIn: tokens.isLoggedIn(),
-  }));
+  ipcMain.handle('auth:status', () =>
+    local
+      ? { hasClientId: true, isLoggedIn: true }
+      : { hasClientId: Boolean(clientId), isLoggedIn: tokens.isLoggedIn() }
+  );
 
   ipcMain.handle('auth:login', async () => {
     try {
@@ -117,6 +160,11 @@ export function registerIpc({ tokens, clientId, debugLog }) {
 
   ipcMain.handle('spotify:launch', async () => {
     try {
+      if (local) {
+        debugLog.write('[launch] abrindo o Spotify (modo local)');
+        await local.launch();
+        return { ok: true };
+      }
       await launchSpotify({
         getDevices: listDevices,
         launch: () => {
@@ -139,6 +187,8 @@ export function registerIpc({ tokens, clientId, debugLog }) {
   });
 
   ipcMain.handle('spotify:idle', async () => {
+    // Modo local: o Spotify fechado já aparece como "sem dispositivo"; não há o que resolver.
+    if (local) return { ok: true, data: null };
     try {
       const idle = await resolveIdle();
       debugLog.writeIfChanged('ocioso', describeIdle(idle));
@@ -151,6 +201,8 @@ export function registerIpc({ tokens, clientId, debugLog }) {
 
   ipcMain.handle('spotify:call', (_event, name, payload = {}) => {
     const command = COMMANDS[name];
+    const provider = local ?? hybrid;
+    if (provider) return callProvider(provider, name, payload);
     if (!command)
       return { ok: false, error: { kind: 'http', message: `unknown_command` } };
     return callAndLog(name, command, payload);
