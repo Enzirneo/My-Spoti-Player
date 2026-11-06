@@ -65,6 +65,14 @@ Ajustes do Sistema > Privacidade e Segurança > Automação). Nesse modo o botã
 desligado, porque curtir depende da conta (Web API). Os passos de Client ID abaixo valem
 só para o Windows.
 
+## Windows: uso da API
+
+No Windows o estado do player (tocando, posição, música atual) e os controles de play, pause,
+próxima, anterior e seek vêm da **sessão de mídia do sistema**, sem usar a API. A Web API só é
+chamada uma vez por música (capa, volume, shuffle, repeat) e nos cliques de volume, curtir,
+shuffle e repeat. Isso corta cerca de 95% das requisições e evita o limite do Spotify. Se a
+sessão de mídia falhar, o app volta a usar só a API.
+
 ## Instalação
 
 ### 1. Criar o app no Spotify e pegar o Client ID
