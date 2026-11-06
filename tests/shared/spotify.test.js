@@ -133,6 +133,12 @@ describe('tratamento de erros', () => {
     expect(error.retryAfterMs).toBe(3000);
   });
 
+  it('espera 30 s num 429 sem Retry-After, em vez de insistir', async () => {
+    const error = await failureOf(vi.fn().mockResolvedValue(response(429)));
+    expect(error.kind).toBe('rate-limited');
+    expect(error.retryAfterMs).toBe(30000);
+  });
+
   it('classifica 404 NO_ACTIVE_DEVICE como no-device', async () => {
     const body = { error: { status: 404, reason: 'NO_ACTIVE_DEVICE' } };
     const error = await failureOf(vi.fn().mockResolvedValue(response(404, { body })));

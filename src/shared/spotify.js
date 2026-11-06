@@ -3,6 +3,8 @@
 
 export const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
 const MS_PER_SECOND = 1000;
+// Sem Retry-After, insistir logo só prolonga o bloqueio do Spotify.
+const DEFAULT_RETRY_AFTER_SECONDS = 30;
 const MAX_VOLUME = 100;
 
 /** Erro com `kind` estável para a UI decidir o que mostrar. */
@@ -30,7 +32,7 @@ async function toSpotifyError(response) {
   const { status } = response;
   if (status === 401) return new SpotifyError('unauthorized', { status });
   if (status === 429) {
-    const retryAfterSeconds = Number(response.headers.get('retry-after')) || 1;
+    const retryAfterSeconds = Number(response.headers.get('retry-after')) || DEFAULT_RETRY_AFTER_SECONDS;
     return new SpotifyError('rate-limited', {
       status,
       retryAfterMs: retryAfterSeconds * MS_PER_SECOND,
