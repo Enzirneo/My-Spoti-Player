@@ -37,7 +37,8 @@ async function toSpotifyError(response, guard) {
   const { status } = response;
   if (status === 401) return new SpotifyError('unauthorized', { status });
   if (status === 429) {
-    const retryAfterSeconds = Number(response.headers.get('retry-after')) || DEFAULT_RETRY_AFTER_SECONDS;
+    const retryAfterSeconds =
+      Number(response.headers.get('retry-after')) || DEFAULT_RETRY_AFTER_SECONDS;
     const retryAfterMs = retryAfterSeconds * MS_PER_SECOND;
     guard.block(retryAfterMs);
     return new SpotifyError('rate-limited', { status, retryAfterMs });
@@ -60,7 +61,10 @@ async function request({
 }) {
   const waitMs = guard.acquire();
   if (waitMs > 0) {
-    throw new SpotifyError('rate-limited', { retryAfterMs: waitMs, message: 'throttled' });
+    throw new SpotifyError('rate-limited', {
+      retryAfterMs: waitMs,
+      message: 'throttled',
+    });
   }
 
   const headers = { Authorization: `Bearer ${token}` };

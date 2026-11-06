@@ -44,7 +44,8 @@ function buildItem([uri, name, artist, album, duration, artwork]) {
     album: { name: album, images: artwork ? [{ url: artwork }] : [] },
     duration_ms: toNumber(duration),
     is_local: type === 'local',
-    external_urls: type === 'track' ? { spotify: `https://open.spotify.com/track/${id}` } : {},
+    external_urls:
+      type === 'track' ? { spotify: `https://open.spotify.com/track/${id}` } : {},
   };
 }
 
@@ -95,8 +96,11 @@ export function createLocalSpotify({
 } = {}) {
   function run(command, args) {
     return new Promise((resolve, reject) => {
-      execFile(command, args, { timeout: SCRIPT_TIMEOUT_MS, encoding: 'utf-8' }, (error, stdout) =>
-        error ? reject(spotifyError(error.message)) : resolve(stdout)
+      execFile(
+        command,
+        args,
+        { timeout: SCRIPT_TIMEOUT_MS, encoding: 'utf-8' },
+        (error, stdout) => (error ? reject(spotifyError(error.message)) : resolve(stdout))
       );
     });
   }
